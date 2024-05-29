@@ -81,6 +81,22 @@ async def index(request: Request):
     }
     return templates.TemplateResponse("index.html", context)
 
+@app.get("/status")
+async def api():
+    data = pd.read_csv("./data.csv").tail(1)
+    response = {
+        "time":str(data.iloc[0,0]),
+        "temperature":float(data.iloc[0,1]),
+        "humidity":float(data.iloc[0,2]),
+        "wind_speed":float(data.iloc[0,3]),
+        "wind_angle":float(data.iloc[0,6]),
+        "noise":float(data.iloc[0,7]),
+        "pm2.5":float(data.iloc[0,8]),
+        "pm10":float(data.iloc[0,9]),
+        "pressure":float(data.iloc[0,10]),
+        "rain":float(data.iloc[0,11])
+    }
+    return response
 
 if __name__ == "__main__":
     import uvicorn
