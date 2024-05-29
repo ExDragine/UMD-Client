@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>李华の气象站</title>
+    <script type="module" src="https://unpkg.com/@fluentui/web-components"></script>
+    <link rel="stylesheet" href="{{ url_for('static', path='FluentSystemIcons-Resizable.css') }}">
+    <!-- <meta http-equiv="refresh" content="60"> 页面每60秒自动刷新一次 -->
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f3f2f1;
+        }
+        header {
+            background-color: #0078d4;
+            color: white;
+            width: 100%;
+            padding: 1rem;
+            text-align: center;
+        }
+        .tabs {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+            margin: 1rem 0;
+            overflow-x: auto;
+        }
+        .tab {
+            margin: 0.5rem;
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: background-color 0.3s;
+            white-space: nowrap;
+        }
+        .tab:hover {
+            background-color: #e1e1e1;
+        }
+        .tab[active] {
+            background-color: #0078d4;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+            width: 90%;
+            max-width: 1400px;
+            padding: 1rem;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            background-color: white;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .chart {
+            width: 100%;
+            height: 600px; /* 设置一个合理的高度 */
+            margin: 20px 0;
+        }
+        .latest-values-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+        .latest-values {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            min-width: 300px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            background-color: white;
+            margin: 10px;
+            box-sizing: border-box;
+        }
+        .latest-values-title {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+        .value-box {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            margin: 10px 0;
+            padding: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1.2em;
+            background-color: white;
+        }
+        .value-box i {
+            margin-right: 10px;
+            font-size: 24px;
+        }
+        @media (max-width: 600px) {
+            .tab {
+                margin: 0.2rem;
+                padding: 0.2rem 0.5rem;
+                font-size: 0.8rem;
+            }
+            .chart {
+                height: 400px; /* 为手机屏幕设置合理的高度 */
+            }
+            .latest-values {
+                width: 90%; /* 增加宽度以适应小屏幕 */
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>李华家中の天气</h1>
+    </header>
+    <div class="latest-values-container">
+        <div class="latest-values">
+            <div class="latest-values-title">大气</div>
+            <div class="value-box">
+                <i class="fluent-icons icon-ic_fluent_temperature_20_regular"></i>
+                温度: {{ latest_temperature }}°C
+            </div>
+            <div class="value-box">
+                <i class="fluent-icons icon-ic_fluent_water_20_regular"></i>
+                湿度: {{ latest_humidity }}%
+            </div>
+            <div class="value-box">
+                <i class="fluent-icons icon-ic_fluent_dumbbell_20_regular"></i>
+                气压: {{ latest_pressure }} hPa
+            </div>
+        </div>
+        <div class="latest-values">
+            <div class="latest-values-title">风</div>
+            <div class="value-box">
+                <i class="fluent-icons icon-ic_fluent_top_speed_20_regular"></i>
+                风速: {{ latest_wind_speed }} m/s
+            </div>
+            <div class="value-box">
+                <i class="fluent-icons icon-ic_fluent_flag_20_regular"></i>
+                风力: {{ latest_wind_scale }}
+            </div>
+            <div class="value-box">
+                <i class="fluent-icons icon-ic_fluent_location_arrow_20_regular"></i>
+                风向角度: {{ latest_wind_angle }}°
+            </div>
+            <div class="value-box">
+                <i class="fluent-icons icon-ic_fluent_compass_northwest_20_regular"></i>
+                风向: {{ latest_wind_direction }}
+            </div>
+        </div>
+        <div class="latest-values">
+            <div class="latest-values-title">其他数值</div>
+            <div class="value-box">
+                <i class="fluent-icons icon-ic_fluent_sound_wave_circle_20_regular"></i>
+                噪声: {{ latest_noise }} dB
+            </div>
+            <div class="value-box">
+                <i class="fluent-icons icon-ic_fluent_weather_rain_20_regular"></i>
+                降雨量: {{ latest_rain }} mm
+            </div>
+            <div class="value-box">
+                <i class="fluent-icons icon-ic_fluent_dust_20_regular"></i>
+                PM2.5: {{ latest_pm2dot5 }} µg/m³
+            </div>
+            <div class="value-box">
+                <i class="fluent-icons icon-ic_fluent_dust_20_filled"></i>
+                PM10: {{ latest_pm10 }} µg/m³
+            </div>
+        </div>
+    </div>
+    <div class="tabs">
+        <div id="temperature-tab" class="tab" active>温度</div>
+        <div id="humidity-tab" class="tab">湿度</div>
+        <div id="windspeed-tab" class="tab">风速</div>
+        <div id="windscale-tab" class="tab">风力</div>
+        <div id="windangle-tab" class="tab">风向角度</div>
+        <div id="winddirection-tab" class="tab">风向</div>
+        <div id="noise-tab" class="tab">噪声</div>
+        <div id="pm2dot5-tab" class="tab">PM2.5</div>
+        <div id="pm10-tab" class="tab">PM10</div>
+        <div id="pressure-tab" class="tab">气压</div>
+        <div id="rain-tab" class="tab">降雨量</div>
+    </div>
+    <div id="temperature-content" class="tab-content active">
+        <div class="chart">{{ temperature_chart|safe }}</div>
+    </div>
+    <div id="humidity-content" class="tab-content active">
+        <div class="chart">{{ humidity_chart|safe }}</div>
+    </div>
+    <div id="windspeed-content" class="tab-content active">
+        <div class="chart">{{ wind_speed_chart|safe }}</div>
+    </div>
+    <div id="windscale-content" class="tab-content active">
+        <div class="chart">{{ wind_scale_chart|safe }}</div>
+    </div>
+    <div id="windangle-content" class="tab-content active">
+        <div class="chart">{{ wind_angle_chart|safe }}</div>
+    </div>
+    <div id="winddirection-content" class="tab-content active">
+        <div class="chart">{{ wind_direction_chart|safe }}</div>
+    </div>
+    <div id="noise-content" class="tab-content active">
+        <div class="chart">{{ noise_chart|safe }}</div>
+    </div>
+    <div id="pm2dot5-content" class="tab-content active">
+        <div class="chart">{{ pm2dot5_chart|safe }}</div>
+    </div>
+    <div id="pm10-content" class="tab-content active">
+        <div class="chart">{{ pm10_chart|safe }}</div>
+    </div>
+    <div id="pressure-content" class="tab-content active" active>
+        <div class="chart">{{ pressure_chart|safe }}</div>
+    </div>
+    <div id="rain-content" class="tab-content active">
+        <div class="chart">{{ rain_chart|safe }}</div>
+    </div>
+    <script>
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', (event) => {
+                document.querySelectorAll('.tab').forEach(t => t.removeAttribute('active'));
+                document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+                tab.setAttribute('active', '');
+                const contentId = tab.id.replace('-tab', '-content');
+                document.getElementById(contentId).classList.add('active');
+            });
+        });
+
+        // 默认打开第一个标签
+        document.querySelector('.tab[active]').click();
+    </script>
+</body>
+</html>
