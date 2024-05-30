@@ -5,6 +5,7 @@ from fastapi.templating import Jinja2Templates
 from pyecharts import options as opts
 from pyecharts.charts import Line
 import pandas as pd
+import datetime
 
 app = FastAPI()
 
@@ -13,7 +14,9 @@ templates = Jinja2Templates(directory="templates")
 
 
 def read_data():
-    df = pd.read_csv("./data.csv")
+    now = datetime.datetime.now()
+    year,month,day = str(now.year),str(now.month),str(now.day)
+    df = pd.read_csv(f"./{year}/{month}/{day}.csv")
     df['time'] = pd.to_datetime(df['time'], unit='s')  # Assuming time is in Unix timestamp format
     return df  # 仅获取最新的60个数据点
 
@@ -83,22 +86,24 @@ async def index(request: Request):
 
 @app.get("/status")
 async def api():
-    data = pd.read_csv("./data.csv").tail(1)
+    now = datetime.datetime.now()
+    year,month,day = str(now.year),str(now.month),str(now.day)
+    df = pd.read_csv(f"./{year}/{month}/{day}.csv")
     response = {
-        "time":str(data.iloc[0,0]),
-        "temperature":float(data.iloc[0,1]),
-        "humidity":float(data.iloc[0,2]),
-        "wind_speed":float(data.iloc[0,3]),
-        "wind_angle":float(data.iloc[0,6]),
-        "noise":float(data.iloc[0,7]),
-        "pm2.5":float(data.iloc[0,8]),
-        "pm10":float(data.iloc[0,9]),
-        "pressure":float(data.iloc[0,10]),
-        "rain":float(data.iloc[0,11])
+        "time":         str(df["time"].to_list()[-1]),
+        "temperature":  float(df["temperature"].to_list()[-1]),
+        "humidity":     float(df["humidity"].to_list()[-1]),
+        "wind_speed":   float(df["wind_speed"].to_list()[-1]),
+        "wind_angle":   float(df["wind_angle"].to_list()[-1]),
+        "noise":        float(df["noise"].to_list()[-1]),
+        "pm2.5":        float(df["pm2dot5"].to_list()[-1]),
+        "pm10":         float(df["pm10"].to_list()[-1]),
+        "pressure":     float(df["pressure"].to_list()[-1]),
+        "rain":         float(df["rain"].to_list()[-1])
     }
     return response
 
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=80)

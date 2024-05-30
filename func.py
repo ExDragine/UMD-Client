@@ -1,9 +1,7 @@
 import serial
 import time
 import os
-import json
-import sqlite3
-import requests
+import datetime
 
 class AirSerial():
     def __init__(self):
@@ -30,7 +28,7 @@ class AirSerial():
 
     def get_data(self, func):
         self.port.write(bytes(self.code[func]))
-        time.sleep(0.1)
+        time.sleep(0.01)
         address = self.port.read(1)
         func_code = self.port.read(1)
         data_length = self.port.read(1)
@@ -39,7 +37,7 @@ class AirSerial():
         crc_h = self.port.read(1)
         data = int.from_bytes(hex_data, byteorder='big')
         match func:
-            case "noise" | "rain":
+            case "noise" | "rain" | "pressure":
                 return float(data / 10)
             case "wind_speed" | "compass":
                 return float(data / 100)
@@ -60,20 +58,34 @@ class AirSerial():
         temp = int.from_bytes(h_temp, byteorder='big') / 10
         return rh, temp
 
-airserial = AirSerial()
+def get_data():
+    airserial = AirSerial()
+    pwd = "/home/exdragine/UMD/data"
 
-ls = ["time", "temperature", "humidity", "wind_speed", "wind_scale", "wind_direction", "wind_angle", "noise", "pm2dot5", "pm10", "pressure","rain"]
-if not os.path.exists("/home/exdragine/UMD/data.csv"):
-    with open("/home/exdragine/UMD/data.csv", "w") as f:
-        f.write(",".join(ls) + "\n")
-ls = ["wind_speed", "wind_scale", "wind_direction", "wind_angle", "noise", "pm2dot5", "pm10", "pressure", "rain"]
-number = [None,None,None,None,None,None,None,None,None]
-now = int(time.time())
-for i in range(len(ls)):
-    number[i] = airserial.get_data(ls[i])
-    time.sleep(0.05)
+    now = datetime.datetime.now()
+    year,month,day = str(now.year),str(now.month),str(now.day)
 
-rh, t = airserial.get_RHaT()
+    os.mkdir(pwd) if not os.path.exists(pwd) else None
+    os.mkdir(f"{pwd}/{year}") if not os.path.exists(f"{pwd}/{year}") else None
+    os.mkdir(f"{pwd}/{year}/{month}") if not os.path.exists(f"{pwd}/{year}/{month}") else None
 
-with open("/home/exdragine/UMD/data.csv", "a") as f:
-    f.write(f"{now},{t},{rh},{','.join([str(x) for x in number])}\n")
+
+    ls = ["time", "temperature", "humidity", "wind_speed", "wind_scale", "wind_direction", "wind_angle", "noise", "pm2dot5", "pm10", "pressure","rain"]
+    if not os.path.exists(f"{pwd}/{year}/{month}/{day}.csv"):
+        with open(f"{pwd}/{year}/{month}/{day}.csv", "w") as f:
+            f.write(",".join(ls) + "\n")
+    ls = ["wind_speed", "wind_scale", "wind_direction", "wind_angle", "noise", "pm2dot5", "pm10", "pressure", "rain"]
+    number = [0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0]
+    now = str(time.time())[:10]
+    for i in range(len(ls)):
+        number[i] = airserial.get_data(ls[i])
+        time.sleep(0.01)
+
+    rh, t = airserial.get_RHaT()
+
+    with open(f"{pwd}/{year}/{month}/{day}.csv", "a") as f:
+        f.write(f"{now},{t},{rh},{','.join([str(x) for x in number])}\n")
+
+if __name__ == "__main__":
+    while True:
+        get_data()
