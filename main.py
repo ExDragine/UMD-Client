@@ -1,5 +1,16 @@
+#  __  __     __    __     _____
+# /\ \/\ \   /\ "-./  \   /\  __-.
+# \ \ \_\ \  \ \ \-./\ \  \ \ \/\ \
+#  \ \_____\  \ \_\ \ \_\  \ \____-
+#   \/_____/   \/_/  \/_/   \/____/
+
+#   _______     _
+#  |_  / _ \   /_\
+#   / / (_) | / _ \
+#  /___\__\_\/_/ \_\
+
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse,FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import pandas as pd
@@ -49,20 +60,29 @@ async def index(request: Request):
 async def api():
     df = pd.read_csv(f"{pwd}/data/latest_3h.csv")
     response = {
-        "time": str(df["time"].to_list()[-1]),
-        "temperature": float(df["temperature"].to_list()[-1]),
-        "humidity": float(df["humidity"].to_list()[-1]),
-        "wind_speed": float(df["wind_speed"].to_list()[-1]),
-        "wind_angle": float(df["wind_angle"].to_list()[-1]),
-        "noise": float(df["noise"].to_list()[-1]),
-        "pm2.5": float(df["pm2dot5"].to_list()[-1]),
-        "pm10": float(df["pm10"].to_list()[-1]),
-        "pressure": float(df["pressure"].to_list()[-1]),
-        "rain": float(df["rain"].to_list()[-1])
+        "time": str(df["time"].iloc[-1]),
+        "temperature": float(df["temperature"].iloc[-1]),
+        "humidity": float(df["humidity"].iloc[-1]),
+        "wind_speed": float(df["wind_speed"].iloc[-1]),
+        "wind_angle": float(df["wind_angle"].iloc[-1]),
+        "noise": float(df["noise"].iloc[-1]),
+        "pm2.5": float(df["pm2dot5"].iloc[-1]),
+        "pm10": float(df["pm10"].iloc[-1]),
+        "pressure": float(df["pressure"].iloc[-1]),
+        "rain": float(df["rain"].iloc[-1])
     }
     return response
+
+
+@app.get("/download")
+async def download():
+    return FileResponse(f"{pwd}/data/latest_3h.csv")
+    # TODO: 日后再写正则表达式吧
+    # (([0-9]{3}[1-9]|[0-9]{2}[1-9][0-9]{1}|[0-9]{1}[1-9][0-9]{2}|[1-9][0-9]{3})__sep__(((0[13578]|1[02])__sep__(0[1-9]|[12][0-9]|3[01]))|((0[469]|11)__sep__(0[1-9]|[12][0-9]|30))|(02__sep__(0[1-9]|[1][0-9]|2[0-8]))))|((([0-9]{2})(0[48]|[2468][048]|[13579][26])__sep__02__sep__29)|((0[48]|[2468][048]|[13579][26])00__sep__02__sep__29))
+
 
 if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(app, host="0.0.0.0", port=80)
+
