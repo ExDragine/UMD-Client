@@ -13,7 +13,7 @@ import serial
 import time
 import os
 import datetime
-from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.background import BlockingScheduler
 
 pwd = "/home/exdragine/UMD-Client/data"
 names = ["time", "temperature", "humidity", "wind_speed", "wind_scale", "wind_direction", "wind_angle", "noise", "pm2dot5", "pm10", "pressure", "rain"]
@@ -78,6 +78,10 @@ def main():
         with open(f"{pwd}/{year}/{month}/{day}.csv", "w") as f:
             f.write(",".join(names) + "\n")
 
+    if not os.path.exists(f"{pwd}/latest_3h.csv"):
+        with open(f"{pwd}/latest_3h.csv", "w") as f:
+            f.write(",".join(names) + "\n")
+
     number = [0.0] * len(funcs)
     timestamp = int(time.time())
     for i in range(len(funcs)):
@@ -91,19 +95,21 @@ def main():
         with open(f"{pwd}/{year}/{month}/{day}.csv", "a") as f:
             f.write(f"{timestamp},{t},{rh},{','.join([str(x) for x in number])}\n")
 
-        with open(f"{pwd}/latest_3h.csv", "a+") as f:
+        with open(f"{pwd}/latest_3h.csv", "r+") as f:
             f.seek(0)
             data = f.readlines()
-            titles = data[0] if data else ",".join(names) + "\n"
+            titles = data[0]
             if len(data) > 10801:
                 data = data[-10800:]
-            data = [titles] + data + [f"{timestamp},{t},{rh},{','.join([str(x) for x in number])}\n"]
+                data = [titles] + data + [f"{timestamp},{t},{rh},{','.join([str(x) for x in number])}\n"]
+            else:
+                data = data + [f"{timestamp},{t},{rh},{','.join([str(x) for x in number])}\n"]
             f.seek(0)
             f.truncate()
             f.writelines(data)
 
 if __name__ == "__main__":
-    scheduler = BackgroundScheduler()
+    scheduler = BlockingScheduler()
     scheduler.add_job(main, 'interval', seconds=1)
     try:
         scheduler.start()

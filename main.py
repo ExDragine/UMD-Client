@@ -25,7 +25,7 @@ templates = Jinja2Templates(directory="templates")
 
 def read_data():
     df = pd.read_csv(f"{pwd}/data/latest_3h.csv")
-    df['time'] = pd.to_datetime(df['time'], unit='s')  # Assuming time is in Unix timestamp format
+    df['time'] = pd.to_datetime(df['time'], unit='s',origin = "1970-01-01 08:00:00")  # Assuming time is in Unix timestamp format
     return df
 
 
