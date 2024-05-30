@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>李华の气象站</title>
     <script type="module" src="https://unpkg.com/@fluentui/web-components"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
     <link rel="stylesheet" href="{{ url_for('static', path='FluentSystemIcons-Resizable.css') }}">
-    <!-- <meta http-equiv="refresh" content="60"> 页面每60秒自动刷新一次 -->
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -63,7 +63,7 @@
         }
         .chart {
             width: 100%;
-            height: 600px; /* 设置一个合理的高度 */
+            height: 600px;
             margin: 20px 0;
         }
         .latest-values-container {
@@ -113,10 +113,10 @@
                 font-size: 0.8rem;
             }
             .chart {
-                height: 400px; /* 为手机屏幕设置合理的高度 */
+                height: 400px;
             }
             .latest-values {
-                width: 90%; /* 增加宽度以适应小屏幕 */
+                width: 90%;
             }
         }
     </style>
@@ -130,53 +130,53 @@
             <div class="latest-values-title">大气</div>
             <div class="value-box">
                 <i class="fluent-icons icon-ic_fluent_temperature_20_regular"></i>
-                温度: {{ latest_temperature }}°C
+                温度: {{ latest_data.temperature }}°C
             </div>
             <div class="value-box">
                 <i class="fluent-icons icon-ic_fluent_water_20_regular"></i>
-                湿度: {{ latest_humidity }}%
+                湿度: {{ latest_data.humidity }}%
             </div>
             <div class="value-box">
                 <i class="fluent-icons icon-ic_fluent_dumbbell_20_regular"></i>
-                气压: {{ latest_pressure }} hPa
+                气压: {{ latest_data.pressure }} hPa
             </div>
         </div>
         <div class="latest-values">
             <div class="latest-values-title">风</div>
             <div class="value-box">
                 <i class="fluent-icons icon-ic_fluent_top_speed_20_regular"></i>
-                风速: {{ latest_wind_speed }} m/s
+                风速: {{ latest_data.wind_speed }} m/s
             </div>
             <div class="value-box">
                 <i class="fluent-icons icon-ic_fluent_flag_20_regular"></i>
-                风力: {{ latest_wind_scale }}
+                风力: {{ latest_data.wind_scale }}
             </div>
             <div class="value-box">
                 <i class="fluent-icons icon-ic_fluent_location_arrow_20_regular"></i>
-                风向角度: {{ latest_wind_angle }}°
+                风向角度: {{ latest_data.wind_angle }}°
             </div>
             <div class="value-box">
                 <i class="fluent-icons icon-ic_fluent_compass_northwest_20_regular"></i>
-                风向: {{ latest_wind_direction }}
+                风向: {{ latest_data.wind_direction }}
             </div>
         </div>
         <div class="latest-values">
             <div class="latest-values-title">其他数值</div>
             <div class="value-box">
                 <i class="fluent-icons icon-ic_fluent_sound_wave_circle_20_regular"></i>
-                噪声: {{ latest_noise }} dB
+                噪声: {{ latest_data.noise }} dB
             </div>
             <div class="value-box">
                 <i class="fluent-icons icon-ic_fluent_weather_rain_20_regular"></i>
-                降雨量: {{ latest_rain }} mm
+                降雨量: {{ latest_data.rain }} mm
             </div>
             <div class="value-box">
                 <i class="fluent-icons icon-ic_fluent_dust_20_regular"></i>
-                PM2.5: {{ latest_pm2dot5 }} µg/m³
+                PM2.5: {{ latest_data.pm2dot5 }} µg/m³
             </div>
             <div class="value-box">
                 <i class="fluent-icons icon-ic_fluent_dust_20_filled"></i>
-                PM10: {{ latest_pm10 }} µg/m³
+                PM10: {{ latest_data.pm10 }} µg/m³
             </div>
         </div>
     </div>
@@ -194,37 +194,37 @@
         <div id="rain-tab" class="tab">降雨量</div>
     </div>
     <div id="temperature-content" class="tab-content active">
-        <div class="chart">{{ temperature_chart|safe }}</div>
+        <div id="temperature-chart" class="chart"></div>
     </div>
-    <div id="humidity-content" class="tab-content active">
-        <div class="chart">{{ humidity_chart|safe }}</div>
+    <div id="humidity-content" class="tab-content">
+        <div id="humidity-chart" class="chart"></div>
     </div>
-    <div id="windspeed-content" class="tab-content active">
-        <div class="chart">{{ wind_speed_chart|safe }}</div>
+    <div id="windspeed-content" class="tab-content">
+        <div id="windspeed-chart" class="chart"></div>
     </div>
-    <div id="windscale-content" class="tab-content active">
-        <div class="chart">{{ wind_scale_chart|safe }}</div>
+    <div id="windscale-content" class="tab-content">
+        <div id="windscale-chart" class="chart"></div>
     </div>
-    <div id="windangle-content" class="tab-content active">
-        <div class="chart">{{ wind_angle_chart|safe }}</div>
+    <div id="windangle-content" class="tab-content">
+        <div id="windangle-chart" class="chart"></div>
     </div>
-    <div id="winddirection-content" class="tab-content active">
-        <div class="chart">{{ wind_direction_chart|safe }}</div>
+    <div id="winddirection-content" class="tab-content">
+        <div id="winddirection-chart" class="chart"></div>
     </div>
-    <div id="noise-content" class="tab-content active">
-        <div class="chart">{{ noise_chart|safe }}</div>
+    <div id="noise-content" class="tab-content">
+        <div id="noise-chart" class="chart"></div>
     </div>
-    <div id="pm2dot5-content" class="tab-content active">
-        <div class="chart">{{ pm2dot5_chart|safe }}</div>
+    <div id="pm2dot5-content" class="tab-content">
+        <div id="pm2dot5-chart" class="chart"></div>
     </div>
-    <div id="pm10-content" class="tab-content active">
-        <div class="chart">{{ pm10_chart|safe }}</div>
+    <div id="pm10-content" class="tab-content">
+        <div id="pm10-chart" class="chart"></div>
     </div>
-    <div id="pressure-content" class="tab-content active">
-        <div class="chart">{{ pressure_chart|safe }}</div>
+    <div id="pressure-content" class="tab-content">
+        <div id="pressure-chart" class="chart"></div>
     </div>
-    <div id="rain-content" class="tab-content active">
-        <div class="chart">{{ rain_chart|safe }}</div>
+    <div id="rain-content" class="tab-content">
+        <div id="rain-chart" class="chart"></div>
     </div>
     <script>
         document.querySelectorAll('.tab').forEach(tab => {
@@ -234,11 +234,90 @@
                 tab.setAttribute('active', '');
                 const contentId = tab.id.replace('-tab', '-content');
                 document.getElementById(contentId).classList.add('active');
+
+                // 手动触发图表resize方法
+                const chartId = contentId.replace('-content', '-chart');
+                if (echarts.getInstanceByDom(document.getElementById(chartId))) {
+                    echarts.getInstanceByDom(document.getElementById(chartId)).resize();
+                }
             });
         });
 
-        // 默认打开第一个标签
         document.querySelector('.tab[active]').click();
+
+        const data = {{ data | tojson }};
+
+        function createChart(containerId, xData, yData, title, yMin, yMax) {
+            var chart = echarts.init(document.getElementById(containerId));
+            var option = {
+                title: {
+                    text: title
+                },
+                tooltip: {
+                    trigger: 'axis'
+                },
+                xAxis: {
+                    type: 'category',
+                    data: xData
+                },
+                yAxis: {
+                    type: 'value',
+                    min: yMin,
+                    max: yMax
+                },
+                series: [{
+                    data: yData,
+                    type: 'line',
+                    smooth: true
+                }]
+            };
+            chart.setOption(option);
+        }
+
+        const xData = data.time.map(t => new Date(t).toLocaleString());
+
+        // 计算y轴的范围，并向下取整最小值，向上取整最大值
+        function getYRange(yData) {
+            const min = Math.min(...yData);
+            const max = Math.max(...yData);
+            const padding = (max - min) * 0.1;
+            const yMin = Math.floor(min - padding);
+            return [yMin < 0 ? 0 : yMin, Math.ceil(max + padding)];
+        }
+
+        // 使用动态计算的y轴范围
+        let yRange = getYRange(data.temperature);
+        createChart('temperature-chart', xData, data.temperature, 'Temperature', yRange[0], yRange[1]);
+
+        yRange = getYRange(data.humidity);
+        createChart('humidity-chart', xData, data.humidity, 'Humidity', yRange[0], yRange[1]);
+
+        yRange = getYRange(data.wind_speed);
+        createChart('windspeed-chart', xData, data.wind_speed, 'Wind Speed', yRange[0], yRange[1]);
+
+        yRange = getYRange(data.wind_scale);
+        createChart('windscale-chart', xData, data.wind_scale, 'Wind Scale', yRange[0], yRange[1]);
+
+        yRange = getYRange(data.wind_angle);
+        createChart('windangle-chart', xData, data.wind_angle, 'Wind Angle', yRange[0], yRange[1]);
+
+        yRange = getYRange(data.wind_direction);
+        createChart('winddirection-chart', xData, data.wind_direction, 'Wind Direction', yRange[0], yRange[1]);
+
+        yRange = getYRange(data.noise);
+        createChart('noise-chart', xData, data.noise, 'Noise', yRange[0], yRange[1]);
+
+        yRange = getYRange(data.pm2dot5);
+        createChart('pm2dot5-chart', xData, data.pm2dot5, 'PM2.5', yRange[0], yRange[1]);
+
+        yRange = getYRange(data.pm10);
+        createChart('pm10-chart', xData, data.pm10, 'PM10', yRange[0], yRange[1]);
+
+        yRange = getYRange(data.pressure);
+        createChart('pressure-chart', xData, data.pressure, 'Pressure', yRange[0], yRange[1]);
+
+        yRange = getYRange(data.rain);
+        createChart('rain-chart', xData, data.rain, 'Rain', yRange[0], yRange[1]);
     </script>
 </body>
 </html>
