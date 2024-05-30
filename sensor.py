@@ -47,7 +47,7 @@ class AirSerial():
         if len(response) == 7:
             data = int.from_bytes(response[3:5], byteorder='big')
             match func:
-                case "noise" | "rain" | "pressure":
+                case "noise" | "rain":
                     return float(data / 10)
                 case "wind_speed" | "compass":
                     return float(data / 100)
