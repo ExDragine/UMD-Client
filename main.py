@@ -3,18 +3,17 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import pandas as pd
-import datetime
 
 app = FastAPI()
+
+pwd = "/home/exdragine/UMD-Client"
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 
 def read_data():
-    now = datetime.datetime.now()
-    year, month, day = str(now.year), str(now.month), str(now.day)
-    df = pd.read_csv(f"./{year}/{month}/{day}.csv")
+    df = pd.read_csv(f"{pwd}/data/latest_3h.csv")
     df['time'] = pd.to_datetime(df['time'], unit='s')  # Assuming time is in Unix timestamp format
     return df
 
@@ -48,9 +47,7 @@ async def index(request: Request):
 
 @app.get("/status")
 async def api():
-    now = datetime.datetime.now()
-    year, month, day = str(now.year), str(now.month), str(now.day)
-    df = pd.read_csv(f"./{year}/{month}/{day}.csv")
+    df = pd.read_csv(f"{pwd}/data/latest_3h.csv")
     response = {
         "time": str(df["time"].to_list()[-1]),
         "temperature": float(df["temperature"].to_list()[-1]),
