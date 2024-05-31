@@ -78,7 +78,7 @@ def main():
         with open(f"{pwd}/{year}/{month}/{day}.csv", "w") as f:
             f.write(",".join(names) + "\n")
 
-    if not os.path.exists(f"{pwd}/latest_1d.csv"):
+    if not os.path.exists(f"{pwd}/latest_3h.csv"):
         with open(f"{pwd}/latest_1d.csv", "w") as f:
             f.write(",".join(names) + "\n")
 
@@ -95,7 +95,7 @@ def main():
         with open(f"{pwd}/{year}/{month}/{day}.csv", "a") as f:
             f.write(f"{timestamp},{t},{rh},{','.join([str(x) for x in number])}\n")
 
-        with open(f"{pwd}/latest_1d.csv", "r+") as f:
+        with open(f"{pwd}/latest_3h.csv", "r+") as f:
             f.seek(0)
             data = f.readlines()
             titles = data[0]

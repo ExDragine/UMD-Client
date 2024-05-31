@@ -27,7 +27,7 @@ templates = Jinja2Templates(directory="templates")
 
 
 def read_data():
-    df = pd.read_csv(f"{pwd}/data/latest_1d.csv")
+    df = pd.read_csv(f"{pwd}/data/latest_3h.csv")
     df['time'] = pd.to_datetime(df['time'], unit='s', origin="1970-01-01 08:00:00")  # Assuming time is in Unix timestamp format
     return df
 
@@ -41,7 +41,7 @@ async def index(request: Request):
 
 @app.get("/status")
 async def api():
-    df = pd.read_csv(f"{pwd}/data/latest_1d.csv")
+    df = pd.read_csv(f"{pwd}/data/latest_3h.csv")
     response = {
         "time": str(df["time"].iloc[-1]),
         "temperature": float(df["temperature"].iloc[-1]),
