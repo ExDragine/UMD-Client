@@ -14,15 +14,13 @@
             box-sizing: border-box;
         }
         html, body {
+            height: 100%;
             width: 100%;
         }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
             display: flex;
             flex-direction: column;
-            align-items: center;
             background-color: #f3f2f1;
         }
         header {
@@ -31,100 +29,108 @@
             width: 100%;
             padding: 1rem;
             text-align: center;
+            position: fixed;
+            top: 0;
+            z-index: 1000;
         }
-        .tabs {
+        .container {
             display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
             width: 100%;
-            margin: 1rem 0;
-            overflow-x: auto;
+            margin-top: 80px; /* Space for fixed header */
         }
-        .tab {
-            margin: 0.5rem;
-            cursor: pointer;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            transition: background-color 0.3s;
-            white-space: nowrap;
-        }
-        .tab:hover {
-            background-color: #e1e1e1;
-        }
-        .tab[active] {
-            background-color: #0078d4;
-            color: white;
-        }
-        .tab-content {
-            display: none;
-            width: 90%;
-            max-width: 1400px;
+        .sidebar {
+            width: 25%;
             padding: 1rem;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            background-color: white;
-            border-radius: 8px;
-            margin-bottom: 2rem;
-            text-align: center;
+            background-color: #f3f2f1;
+            overflow-y: auto;
+            position: fixed;
+            top: 80px; /* Below the fixed header */
+            bottom: 0;
         }
-        .tab-content.active {
-            display: block;
-        }
-        .chart {
-            width: 100%;
-            height: 600px;
-            margin: 20px 0;
+        .content {
+            width: 75%;
+            padding: 1rem;
+            margin-left: 25%; /* To make space for the fixed sidebar */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to the start to keep the top aligned */
         }
         .latest-values-container {
             display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            margin-bottom: 20px;
+            flex-direction: column;
             width: 100%;
         }
         .latest-values {
             display: flex;
             flex-direction: column;
-            flex-grow: 1;
-            min-width: 300px;
             padding: 20px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
             background-color: white;
-            margin: 10px;
-            box-sizing: border-box;
+            margin: 20px 0; /* 增加上下间距 */
         }
         .latest-values-title {
-            font-size: 1.5em;
+            font-size: 1.2em; /* 调整字体大小 */
             margin-bottom: 10px;
         }
         .value-box {
             display: flex;
             align-items: center;
-            justify-content: center;
-            width: 100%;
-            margin: 10px 0;
+            justify-content: space-between;
+            margin: 5px 0;
             padding: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
-            text-align: center;
-            font-size: 1.2em;
-            background-color: white;
+            text-align: left; /* 修改为左对齐 */
+            font-size: 1em; /* 调整字体大小 */
+            background-color: #f3f2f1;
+            cursor: pointer;
+        }
+        .value-box.active {
+            background-color: #0078d4;
+            color: white;
         }
         .value-box i {
             margin-right: 10px;
             font-size: 24px;
         }
-        @media (max-width: 600px) {
-            .tab {
-                margin: 0.2rem;
-                padding: 0.2rem 0.5rem;
-                font-size: 0.8rem;
+        .value-box span {
+            margin-left: auto; /* 让数值部分靠右对齐 */
+        }
+        .chart-container {
+            display: none;
+            width: 100%;
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            height: 0;
+        }
+        .chart-container.active {
+            display: block;
+        }
+        .chart {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        @media (max-width: 800px) {
+            .container {
+                flex-direction: column;
             }
-            .chart {
-                height: 400px;
+            .sidebar {
+                width: 100%;
+                position: relative;
+                top: auto;
+                bottom: auto;
+                margin-left: 0;
+                order: 2;
             }
-            .latest-values {
-                width: 90%;
+            .content {
+                width: 100%;
+                margin-left: 0;
+                order: 1;
+                justify-content: center;
+                align-items: center;
             }
         }
     </style>
@@ -133,130 +139,162 @@
     <header>
         <h1>李华家中の天气</h1>
     </header>
-    <div class="latest-values-container">
-        <div class="latest-values">
-            <div class="latest-values-title">大气</div>
-            <div class="value-box">
-                <i class="fluent-icons icon-ic_fluent_temperature_20_regular"></i>
-                温度: {{ latest_data.temperature }}°C
-            </div>
-            <div class="value-box">
-                <i class="fluent-icons icon-ic_fluent_water_20_regular"></i>
-                湿度: {{ latest_data.humidity }}%
-            </div>
-            <div class="value-box">
-                <i class="fluent-icons icon-ic_fluent_dumbbell_20_regular"></i>
-                气压: {{ latest_data.pressure }} hPa
+    <div class="container">
+        <div class="sidebar">
+            <div class="latest-values-container">
+                <div id="temperature-info" class="latest-values">
+                    <div class="latest-values-title">大气</div>
+                    <div class="value-box" data-type="temperature" data-chart="temperature-chart">
+                        <i class="fluent-icons icon-ic_fluent_temperature_20_regular"></i>
+                        温度: <span id="temperature-value"></span>°C
+                    </div>
+                    <div class="value-box" data-type="humidity" data-chart="humidity-chart">
+                        <i class="fluent-icons icon-ic_fluent_water_20_regular"></i>
+                        湿度: <span id="humidity-value"></span>%
+                    </div>
+                    <div class="value-box" data-type="pressure" data-chart="pressure-chart">
+                        <i class="fluent-icons icon-ic_fluent_dumbbell_20_regular"></i>
+                        气压: <span id="pressure-value"></span> hPa
+                    </div>
+                </div>
+                <div id="wind-info" class="latest-values">
+                    <div class="latest-values-title">风</div>
+                    <div class="value-box" data-type="wind_speed" data-chart="windspeed-chart">
+                        <i class="fluent-icons icon-ic_fluent_top_speed_20_regular"></i>
+                        风速: <span id="wind_speed-value"></span> m/s
+                    </div>
+                    <div class="value-box" data-type="wind_scale" data-chart="windscale-chart">
+                        <i class="fluent-icons icon-ic_fluent_flag_20_regular"></i>
+                        风力: <span id="wind_scale-value"></span>
+                    </div>
+                    <div class="value-box" data-type="wind_angle" data-chart="windangle-chart">
+                        <i class="fluent-icons icon-ic_fluent_location_arrow_20_regular"></i>
+                        风向角度: <span id="wind_angle-value"></span>°
+                    </div>
+                    <div class="value-box" data-type="wind_direction" data-chart="winddirection-chart">
+                        <i class="fluent-icons icon-ic_fluent_compass_northwest_20_regular"></i>
+                        风向: <span id="wind_direction-value"></span>
+                    </div>
+                </div>
+                <div id="other-info" class="latest-values">
+                    <div class="latest-values-title">其他数值</div>
+                    <div class="value-box" data-type="noise" data-chart="noise-chart">
+                        <i class="fluent-icons icon-ic_fluent_sound_wave_circle_20_regular"></i>
+                        噪声: <span id="noise-value"></span> dB
+                    </div>
+                    <div class="value-box" data-type="rain" data-chart="rain-chart">
+                        <i class="fluent-icons icon-ic_fluent_weather_rain_20_regular"></i>
+                        降雨量: <span id="rain-value"></span> mm
+                    </div>
+                    <div class="value-box" data-type="pm2dot5" data-chart="pm2dot5-chart">
+                        <i class="fluent-icons icon-ic_fluent_dust_20_regular"></i>
+                        PM2.5: <span id="pm2dot5-value"></span> µg/m³
+                    </div>
+                    <div class="value-box" data-type="pm10" data-chart="pm10-chart">
+                        <i class="fluent-icons icon-ic_fluent_dust_20_filled"></i>
+                        PM10: <span id="pm10-value"></span> µg/m³
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="latest-values">
-            <div class="latest-values-title">风</div>
-            <div class="value-box">
-                <i class="fluent-icons icon-ic_fluent_top_speed_20_regular"></i>
-                风速: {{ latest_data.wind_speed }} m/s
+        <div class="content">
+            <div id="temperature-chart" class="chart-container active">
+                <div class="chart" id="temperature-chart-container"></div>
             </div>
-            <div class="value-box">
-                <i class="fluent-icons icon-ic_fluent_flag_20_regular"></i>
-                风力: {{ latest_data.wind_scale }}
+            <div id="humidity-chart" class="chart-container">
+                <div class="chart" id="humidity-chart-container"></div>
             </div>
-            <div class="value-box">
-                <i class="fluent-icons icon-ic_fluent_location_arrow_20_regular"></i>
-                风向角度: {{ latest_data.wind_angle }}°
+            <div id="pressure-chart" class="chart-container">
+                <div class="chart" id="pressure-chart-container"></div>
             </div>
-            <div class="value-box">
-                <i class="fluent-icons icon-ic_fluent_compass_northwest_20_regular"></i>
-                风向: {{ latest_data.wind_direction }}
+            <div id="windspeed-chart" class="chart-container">
+                <div class="chart" id="windspeed-chart-container"></div>
             </div>
-        </div>
-        <div class="latest-values">
-            <div class="latest-values-title">其他数值</div>
-            <div class="value-box">
-                <i class="fluent-icons icon-ic_fluent_sound_wave_circle_20_regular"></i>
-                噪声: {{ latest_data.noise }} dB
+            <div id="windscale-chart" class="chart-container">
+                <div class="chart" id="windscale-chart-container"></div>
             </div>
-            <div class="value-box">
-                <i class="fluent-icons icon-ic_fluent_weather_rain_20_regular"></i>
-                降雨量: {{ latest_data.rain }} mm
+            <div id="windangle-chart" class="chart-container">
+                <div class="chart" id="windangle-chart-container"></div>
             </div>
-            <div class="value-box">
-                <i class="fluent-icons icon-ic_fluent_dust_20_regular"></i>
-                PM2.5: {{ latest_data.pm2dot5 }} µg/m³
+            <div id="winddirection-chart" class="chart-container">
+                <div class="chart" id="winddirection-chart-container"></div>
             </div>
-            <div class="value-box">
-                <i class="fluent-icons icon-ic_fluent_dust_20_filled"></i>
-                PM10: {{ latest_data.pm10 }} µg/m³
+            <div id="noise-chart" class="chart-container">
+                <div class="chart" id="noise-chart-container"></div>
+            </div>
+            <div id="rain-chart" class="chart-container">
+                <div class="chart" id="rain-chart-container"></div>
+            </div>
+            <div id="pm2dot5-chart" class="chart-container">
+                <div class="chart" id="pm2dot5-chart-container"></div>
+            </div>
+            <div id="pm10-chart" class="chart-container">
+                <div class="chart" id="pm10-chart-container"></div>
             </div>
         </div>
-    </div>
-    <div class="tabs">
-        <div id="temperature-tab" class="tab" active>温度</div>
-        <div id="humidity-tab" class="tab">湿度</div>
-        <div id="windspeed-tab" class="tab">风速</div>
-        <div id="windscale-tab" class="tab">风力</div>
-        <div id="windangle-tab" class="tab">风向角度</div>
-        <div id="winddirection-tab" class="tab">风向</div>
-        <div id="noise-tab" class="tab">噪声</div>
-        <div id="pm2dot5-tab" class="tab">PM2.5</div>
-        <div id="pm10-tab" class="tab">PM10</div>
-        <div id="pressure-tab" class="tab">气压</div>
-        <div id="rain-tab" class="tab">降雨量</div>
-    </div>
-    <div id="temperature-content" class="tab-content active">
-        <div id="temperature-chart" class="chart"></div>
-    </div>
-    <div id="humidity-content" class="tab-content">
-        <div id="humidity-chart" class="chart"></div>
-    </div>
-    <div id="windspeed-content" class="tab-content">
-        <div id="windspeed-chart" class="chart"></div>
-    </div>
-    <div id="windscale-content" class="tab-content">
-        <div id="windscale-chart" class="chart"></div>
-    </div>
-    <div id="windangle-content" class="tab-content">
-        <div id="windangle-chart" class="chart"></div>
-    </div>
-    <div id="winddirection-content" class="tab-content">
-        <div id="winddirection-chart" class="chart"></div>
-    </div>
-    <div id="noise-content" class="tab-content">
-        <div id="noise-chart" class="chart"></div>
-    </div>
-    <div id="pm2dot5-content" class="tab-content">
-        <div id="pm2dot5-chart" class="chart"></div>
-    </div>
-    <div id="pm10-content" class="tab-content">
-        <div id="pm10-chart" class="chart"></div>
-    </div>
-    <div id="pressure-content" class="tab-content">
-        <div id="pressure-chart" class="chart"></div>
-    </div>
-    <div id="rain-content" class="tab-content">
-        <div id="rain-chart" class="chart"></div>
     </div>
     <script>
-        document.querySelectorAll('.tab').forEach(tab => {
-            tab.addEventListener('click', (event) => {
-                document.querySelectorAll('.tab').forEach(t => t.removeAttribute('active'));
-                document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
-                tab.setAttribute('active', '');
-                const contentId = tab.id.replace('-tab', '-content');
-                document.getElementById(contentId).classList.add('active');
+        document.querySelectorAll('.value-box').forEach(item => {
+            item.addEventListener('click', (event) => {
+                document.querySelectorAll('.value-box').forEach(el => el.classList.remove('active'));
+                item.classList.add('active');
+                document.querySelectorAll('.chart-container').forEach(chart => chart.classList.remove('active'));
+                const chartId = item.getAttribute('data-chart');
+                document.getElementById(chartId).classList.add('active');
 
                 // 手动触发图表resize方法
-                const chartId = contentId.replace('-content', '-chart');
-                if (echarts.getInstanceByDom(document.getElementById(chartId))) {
-                    echarts.getInstanceByDom(document.getElementById(chartId)).resize();
+                const chartDom = document.getElementById(chartId).querySelector('.chart');
+                if (echarts.getInstanceByDom(chartDom)) {
+                    echarts.getInstanceByDom(chartDom).resize();
                 }
+
+                // 获取并渲染数据
+                const type = item.getAttribute('data-type');
+                fetchChartData(type, chartDom);
             });
         });
 
-        document.querySelector('.tab[active]').click();
+        async function fetchChartData(type, chartDom) {
+            try {
+                const response = await fetch(`http://127.0.0.1:80/api/charts?type=${type}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                const xData = data.time.map(t => new Date(t).toLocaleString());
+                const yData = data[type];
+                const yRange = getYRange(yData);
+                createChart(chartDom, xData, yData, type, yRange[0], yRange[1]);
+            } catch (error) {
+                console.error('Error fetching chart data:', error);
+            }
+        }
 
-        const data = {{ data | tojson }};
+        async function fetchLatestData() {
+            try {
+                const response = await fetch('http://127.0.0.1:80/status');
+                const latestData = await response.json();
 
-        function createChart(containerId, xData, yData, title, yMin, yMax) {
-            var chart = echarts.init(document.getElementById(containerId));
+                document.getElementById('temperature-value').textContent = latestData.temperature;
+                document.getElementById('humidity-value').textContent = latestData.humidity;
+                document.getElementById('pressure-value').textContent = latestData.pressure;
+                document.getElementById('wind_speed-value').textContent = latestData.wind_speed;
+                document.getElementById('wind_scale-value').textContent = latestData.wind_scale;
+                document.getElementById('wind_angle-value').textContent = latestData.wind_angle;
+                document.getElementById('wind_direction-value').textContent = latestData.wind_direction;
+                document.getElementById('noise-value').textContent = latestData.noise;
+                document.getElementById('rain-value').textContent = latestData.rain;
+                document.getElementById('pm2dot5-value').textContent = latestData["pm2.5"];
+                document.getElementById('pm10-value').textContent = latestData.pm10;
+            } catch (error) {
+                console.error('Error fetching latest data:', error);
+            }
+        }
+
+        function createChart(chartDom, xData, yData, title, yMin, yMax) {
+            var chart = echarts.init(chartDom);
             var option = {
                 title: {
                     left: 'center',
@@ -341,9 +379,6 @@
             chart.setOption(option);
         }
 
-        const xData = data.time.map(t => new Date(t).toLocaleString());
-
-        // 计算y轴的范围，并向下取整最小值，向上取整最大值
         function getYRange(yData) {
             const min = Math.min(...yData);
             const max = Math.max(...yData);
@@ -352,39 +387,15 @@
             return [yMin < 0 ? 0 : yMin, Math.ceil(max + padding)];
         }
 
-        // 使用动态计算的y轴范围
-        let yRange = getYRange(data.temperature);
-        createChart('temperature-chart', xData, data.temperature, 'Temperature', yRange[0], yRange[1]);
+        document.addEventListener('DOMContentLoaded', () => {
+            // 默认加载温度图表数据
+            const defaultChartDom = document.querySelector('.chart-container.active .chart');
+            fetchChartData('temperature', defaultChartDom);
 
-        yRange = getYRange(data.humidity);
-        createChart('humidity-chart', xData, data.humidity, 'Humidity', yRange[0], yRange[1]);
-
-        yRange = getYRange(data.wind_speed);
-        createChart('windspeed-chart', xData, data.wind_speed, 'Wind Speed', yRange[0], yRange[1]);
-
-        yRange = getYRange(data.wind_scale);
-        createChart('windscale-chart', xData, data.wind_scale, 'Wind Scale', yRange[0], yRange[1]);
-
-        yRange = getYRange(data.wind_angle);
-        createChart('windangle-chart', xData, data.wind_angle, 'Wind Angle', yRange[0], yRange[1]);
-
-        yRange = getYRange(data.wind_direction);
-        createChart('winddirection-chart', xData, data.wind_direction, 'Wind Direction', yRange[0], yRange[1]);
-
-        yRange = getYRange(data.noise);
-        createChart('noise-chart', xData, data.noise, 'Noise', yRange[0], yRange[1]);
-
-        yRange = getYRange(data.pm2dot5);
-        createChart('pm2dot5-chart', xData, data.pm2dot5, 'PM2.5', yRange[0], yRange[1]);
-
-        yRange = getYRange(data.pm10);
-        createChart('pm10-chart', xData, data.pm10, 'PM10', yRange[0], yRange[1]);
-
-        yRange = getYRange(data.pressure);
-        createChart('pressure-chart', xData, data.pressure, 'Pressure', yRange[0], yRange[1]);
-
-        yRange = getYRange(data.rain);
-        createChart('rain-chart', xData, data.rain, 'Rain', yRange[0], yRange[1]);
+            // 获取并显示最新数据
+            fetchLatestData();
+            setInterval(fetchLatestData, 60000); // 每分钟刷新一次最新数据
+        });
     </script>
 </body>
 </html>

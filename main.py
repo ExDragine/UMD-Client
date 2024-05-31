@@ -20,7 +20,7 @@ import pandas as pd
 
 app = FastAPI()
 
-pwd = "."
+pwd = "/home/exdragine/UMD-Client"
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
@@ -34,24 +34,8 @@ def read_data():
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    df = read_data()
-    df['time'] = df['time'].astype(str)  # 将Timestamp类型转换为字符串
 
-    latest_data = {
-        "temperature": float(df["temperature"].iloc[-1]),
-        "humidity": float(df["humidity"].iloc[-1]),
-        "wind_speed": float(df["wind_speed"].iloc[-1]),
-        "wind_scale": float(df["wind_scale"].iloc[-1]),
-        "wind_angle": float(df["wind_angle"].iloc[-1]),
-        "wind_direction": float(df["wind_direction"].iloc[-1]),
-        "noise": float(df["noise"].iloc[-1]),
-        "pm2dot5": float(df["pm2dot5"].iloc[-1]),
-        "pm10": float(df["pm10"].iloc[-1]),
-        "pressure": float(df["pressure"].iloc[-1]),
-        "rain": float(df["rain"].iloc[-1]),
-    }
-
-    context = {"request": request, "data": df.to_dict(orient="list"), "latest_data": latest_data}
+    context = {"request": request}
     return templates.TemplateResponse("index.html", context)
 
 
