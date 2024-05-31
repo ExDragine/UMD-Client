@@ -256,7 +256,7 @@
 
         async function fetchChartData(type, chartDom) {
             try {
-                const response = await fetch(`http://127.0.0.1:80/api/charts?type=${type}`, {
+                const response = await fetch(`http://lihua.cncoresteb.com/api/charts?type=${type}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -274,7 +274,7 @@
 
         async function fetchLatestData() {
             try {
-                const response = await fetch('http://127.0.0.1:80/status');
+                const response = await fetch('http://lihua.cncoresteb.com/status');
                 const latestData = await response.json();
 
                 document.getElementById('temperature-value').textContent = latestData.temperature;
