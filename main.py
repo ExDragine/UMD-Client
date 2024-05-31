@@ -47,6 +47,8 @@ async def api():
         "temperature": float(df["temperature"].iloc[-1]),
         "humidity": float(df["humidity"].iloc[-1]),
         "wind_speed": float(df["wind_speed"].iloc[-1]),
+        "wind_scale": float(df["wind_scale"].iloc[-1]),
+        "wind_direction": float(df["wind_direction"].iloc[-1]),
         "wind_angle": float(df["wind_angle"].iloc[-1]),
         "noise": float(df["noise"].iloc[-1]),
         "pm2.5": float(df["pm2dot5"].iloc[-1]),
@@ -67,6 +69,7 @@ async def download(year=0, month=0, day=0):
             return FileResponse(f"{pwd}/data/{str(year)}/{str(month)}/{str(day)}.csv")
         except:
             return "format illeged"
+
 
 class types(enum.Enum):
     temperature = "temperature"
@@ -89,6 +92,7 @@ async def get_charts(type: types):
     response[type.name] = df[type.name].to_list()
     return response
 
+
 @app.get("/update")
 async def update():
     try:
@@ -96,6 +100,7 @@ async def update():
         return "finish"
     except:
         pass
+
 
 if __name__ == "__main__":
     import uvicorn
