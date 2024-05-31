@@ -99,8 +99,8 @@ def main():
             f.seek(0)
             data = f.readlines()
             titles = data[0]
-            if len(data) > 86401:
-                data = data[-86400:]
+            if len(data) > 10801:
+                data = data[-10800:]
                 data = [titles] + data + [f"{timestamp},{t},{rh},{','.join([str(x) for x in number])}\n"]
             else:
                 data = data + [f"{timestamp},{t},{rh},{','.join([str(x) for x in number])}\n"]
