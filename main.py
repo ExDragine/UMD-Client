@@ -9,15 +9,18 @@
 #   / / (_) | / _ \
 #  /___\__\_\/_/ \_\
 
+import os
+import datetime
+import enum
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse,FileResponse
+from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import pandas as pd
 
 app = FastAPI()
 
-pwd = "/home/exdragine/UMD-Client"
+pwd = "."
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
@@ -25,7 +28,7 @@ templates = Jinja2Templates(directory="templates")
 
 def read_data():
     df = pd.read_csv(f"{pwd}/data/latest_1d.csv")
-    df['time'] = pd.to_datetime(df['time'], unit='s',origin = "1970-01-01 08:00:00")  # Assuming time is in Unix timestamp format
+    df['time'] = pd.to_datetime(df['time'], unit='s', origin="1970-01-01 08:00:00")  # Assuming time is in Unix timestamp format
     return df
 
 
@@ -45,14 +48,10 @@ async def index(request: Request):
         "pm2dot5": float(df["pm2dot5"].iloc[-1]),
         "pm10": float(df["pm10"].iloc[-1]),
         "pressure": float(df["pressure"].iloc[-1]),
-        "rain": float(df["rain"].iloc[-1])
+        "rain": float(df["rain"].iloc[-1]),
     }
 
-    context = {
-        "request": request,
-        "data": df.to_dict(orient="list"),
-        "latest_data": latest_data
-    }
+    context = {"request": request, "data": df.to_dict(orient="list"), "latest_data": latest_data}
     return templates.TemplateResponse("index.html", context)
 
 
@@ -69,20 +68,52 @@ async def api():
         "pm2.5": float(df["pm2dot5"].iloc[-1]),
         "pm10": float(df["pm10"].iloc[-1]),
         "pressure": float(df["pressure"].iloc[-1]),
-        "rain": float(df["rain"].iloc[-1])
+        "rain": float(df["rain"].iloc[-1]),
     }
     return response
 
 
-@app.get("/download")
-async def download():
-    return FileResponse(f"{pwd}/data/latest_3h.csv")
-    # TODO: 日后再写正则表达式吧
-    # (([0-9]{3}[1-9]|[0-9]{2}[1-9][0-9]{1}|[0-9]{1}[1-9][0-9]{2}|[1-9][0-9]{3})__sep__(((0[13578]|1[02])__sep__(0[1-9]|[12][0-9]|3[01]))|((0[469]|11)__sep__(0[1-9]|[12][0-9]|30))|(02__sep__(0[1-9]|[1][0-9]|2[0-8]))))|((([0-9]{2})(0[48]|[2468][048]|[13579][26])__sep__02__sep__29)|((0[48]|[2468][048]|[13579][26])00__sep__02__sep__29))
+@app.get("/api/download")
+async def download(year=0, month=0, day=0):
+    if year == 0 or month == 0 or day == 0:
+        return FileResponse(f"{pwd}/data/latest_1d.csv")
+    if year and month and day:
+        try:
+            datetime.datetime(year, month, day)
+            return FileResponse(f"{pwd}/data/{str(year)}/{str(month)}/{str(day)}.csv")
+        except:
+            return "format illeged"
 
+class types(enum.Enum):
+    temperature = "temperature"
+    humidity = "humidity"
+    wind_speed = "wind_speed"
+    wind_angle = "wind_angle"
+    noise = "noise"
+    pm2dot5 = "pm2.5"
+    pm10 = "pm10"
+    pressure = "pressure"
+    rain = "rain"
+
+
+@app.post("/api/charts")
+async def get_charts(type: types):
+    df = read_data()
+    df['time'] = df['time'].astype(str)  # 将Timestamp类型转换为字符串
+    response = {}
+    response["time"] = df["time"].to_list()
+    response[type.name] = df[type.name].to_list()
+    return response
+
+@app.get("/update")
+async def update():
+    try:
+        os.system(f"bash {pwd}/update.sh")
+        return "finish"
+    except:
+        pass
 
 if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(app, host="0.0.0.0", port=80)
-

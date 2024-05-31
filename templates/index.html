@@ -8,6 +8,14 @@
     <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
     <link rel="stylesheet" href="{{ url_for('static', path='FluentSystemIcons-Resizable.css') }}">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body {
+            width: 100%;
+        }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
@@ -251,10 +259,33 @@
             var chart = echarts.init(document.getElementById(containerId));
             var option = {
                 title: {
+                    left: 'center',
                     text: title
                 },
+                visualMap: [
+                {
+                  show: false,
+                  type: 'continuous',
+                  seriesIndex: 0,
+                  min: yMin/1.1,
+                  max: yMax*1.1,
+                  hoverLink:true,
+                  inRange:{
+                    color:['rgb(255, 214, 27)','rgb(255, 149, 68)','rgb(255, 87, 56)']
+                  }
+                }
+              ],
                 tooltip: {
                     trigger: 'axis'
+                },
+                toolbox:{
+                    feature:{
+                        dataZoom:{
+                            yAxisIndex:'none'
+                        },
+                        restore:{},
+                        saveAsImage:{}
+                    }
                 },
                 xAxis: {
                     type: 'category',
@@ -265,9 +296,45 @@
                     min: yMin,
                     max: yMax
                 },
+                dataZoom:[
+                {
+                    type:'inside',
+                    start:0,
+                    end:100
+                },{
+                    start:0,
+                    end:100
+                }
+                ],
                 series: [{
                     data: yData,
                     type: 'line',
+                    symbol:'none',
+                    sampling:'lttb',
+                    itemStyle:{
+                        color:'#964B00'
+                    },
+                    markPoint:{
+                        data:[
+                        {type:'max',name:'Max'},
+                        {type:'min',name:'Min'}
+                        ]
+                    },
+                    markLine:{
+                        data:[{type:'average',name:'Avg'}]
+                    },
+                    areaStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                          {
+                            offset: 1,
+                            color: 'rgb(255, 158, 68)'
+                          },
+                          {
+                            offset: 0,
+                            color: 'rgb(255, 70, 131)'
+                          }
+                        ])
+                      },
                     smooth: true
                 }]
             };
