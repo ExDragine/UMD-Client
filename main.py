@@ -75,6 +75,8 @@ class types(enum.Enum):
     temperature = "temperature"
     humidity = "humidity"
     wind_speed = "wind_speed"
+    wind_scale="wind_scale"
+    wind_direction="wind_direction"
     wind_angle = "wind_angle"
     noise = "noise"
     pm2dot5 = "pm2dot5"
