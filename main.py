@@ -77,7 +77,7 @@ class types(enum.Enum):
     wind_speed = "wind_speed"
     wind_angle = "wind_angle"
     noise = "noise"
-    pm2dot5 = "pm2.5"
+    pm2dot5 = "pm2dot5"
     pm10 = "pm10"
     pressure = "pressure"
     rain = "rain"
