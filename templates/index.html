@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>李华の气象站</title>
     <script type="module" src="https://unpkg.com/@fluentui/web-components"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+    <script src="https://js.arcgis.com/4.24/"></script>
     <link rel="stylesheet" href="{{ url_for('static', path='FluentSystemIcons-Resizable.css') }}">
     <style>
         * {
@@ -13,16 +15,20 @@
             padding: 0;
             box-sizing: border-box;
         }
-        html, body {
+
+        html,
+        body {
             height: 100%;
             width: 100%;
         }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
             flex-direction: column;
             background-color: #f3f2f1;
         }
+
         header {
             background-color: #0078d4;
             color: white;
@@ -33,33 +39,42 @@
             top: 0;
             z-index: 1000;
         }
+
         .container {
             display: flex;
             width: 100%;
-            margin-top: 80px; /* Space for fixed header */
+            margin-top: 80px;
+            /* Space for fixed header */
         }
+
         .sidebar {
             width: 25%;
             padding: 1rem;
             background-color: #f3f2f1;
             overflow-y: auto;
             position: fixed;
-            top: 80px; /* Below the fixed header */
+            top: 80px;
+            /* Below the fixed header */
             bottom: 0;
         }
+
         .content {
             width: 75%;
             padding: 1rem;
-            margin-left: 25%; /* To make space for the fixed sidebar */
+            margin-left: 25%;
+            /* To make space for the fixed sidebar */
             display: flex;
             justify-content: center;
-            align-items: flex-start; /* Align to the start to keep the top aligned */
+            align-items: flex-start;
+            /* Align to the start to keep the top aligned */
         }
+
         .latest-values-container {
             display: flex;
             flex-direction: column;
             width: 100%;
         }
+
         .latest-values {
             display: flex;
             flex-direction: column;
@@ -67,12 +82,16 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
             background-color: white;
-            margin: 20px 0; /* 增加上下间距 */
+            margin: 20px 0;
+            /* 增加上下间距 */
         }
+
         .latest-values-title {
-            font-size: 1.2em; /* 调整字体大小 */
+            font-size: 1.2em;
+            /* 调整字体大小 */
             margin-bottom: 10px;
         }
+
         .value-box {
             display: flex;
             align-items: center;
@@ -80,32 +99,42 @@
             margin: 5px 0;
             padding: 10px;
             border-radius: 8px;
-            text-align: left; /* 修改为左对齐 */
-            font-size: 1em; /* 调整字体大小 */
+            text-align: left;
+            /* 修改为左对齐 */
+            font-size: 1em;
+            /* 调整字体大小 */
             background-color: #f3f2f1;
             cursor: pointer;
         }
+
         .value-box.active {
             background-color: #0078d4;
             color: white;
         }
+
         .value-box i {
             margin-right: 10px;
             font-size: 24px;
         }
+
         .value-box span {
-            margin-left: auto; /* 让数值部分靠右对齐 */
+            margin-left: auto;
+            /* 让数值部分靠右对齐 */
         }
+
         .chart-container {
             display: none;
             width: 100%;
             position: relative;
-            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            padding-bottom: 56.25%;
+            /* 16:9 aspect ratio */
             height: 0;
         }
+
         .chart-container.active {
             display: block;
         }
+
         .chart {
             position: absolute;
             top: 0;
@@ -113,10 +142,12 @@
             width: 100%;
             height: 100%;
         }
+
         @media (max-width: 800px) {
             .container {
                 flex-direction: column;
             }
+
             .sidebar {
                 width: 100%;
                 position: relative;
@@ -125,6 +156,7 @@
                 margin-left: 0;
                 order: 2;
             }
+
             .content {
                 width: 100%;
                 margin-left: 0;
@@ -133,8 +165,26 @@
                 align-items: center;
             }
         }
+
+        .chart-container.map {
+            display: block;
+            width: 100%;
+            position: relative;
+            padding-bottom: 56.25%;
+            /* 16:9 aspect ratio */
+            height: 0;
+        }
+
+        .chart.map {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
     </style>
 </head>
+
 <body>
     <header>
         <h1>李华家中の天气</h1>
@@ -195,43 +245,55 @@
                         PM10: <span id="pm10-value"></span> µg/m³
                     </div>
                 </div>
+                <div id="about" class="latest-values">
+                    <div class="latest-values-title">关于</div>
+                    <div class="value-box" data-type="map" data-chart="map-chart">
+                        <i class="fluent-icons icon-ic_fluent_location_20_regular"></i>
+                        气象站位置 <span></span>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="content">
-            <div id="temperature-chart" class="chart-container active">
-                <div class="chart" id="temperature-chart-container"></div>
-            </div>
-            <div id="humidity-chart" class="chart-container">
-                <div class="chart" id="humidity-chart-container"></div>
-            </div>
-            <div id="pressure-chart" class="chart-container">
-                <div class="chart" id="pressure-chart-container"></div>
-            </div>
-            <div id="windspeed-chart" class="chart-container">
-                <div class="chart" id="windspeed-chart-container"></div>
-            </div>
-            <div id="windscale-chart" class="chart-container">
-                <div class="chart" id="windscale-chart-container"></div>
-            </div>
-            <div id="windangle-chart" class="chart-container">
-                <div class="chart" id="windangle-chart-container"></div>
-            </div>
-            <div id="winddirection-chart" class="chart-container">
-                <div class="chart" id="winddirection-chart-container"></div>
-            </div>
-            <div id="noise-chart" class="chart-container">
-                <div class="chart" id="noise-chart-container"></div>
-            </div>
-            <div id="rain-chart" class="chart-container">
-                <div class="chart" id="rain-chart-container"></div>
-            </div>
-            <div id="pm2dot5-chart" class="chart-container">
-                <div class="chart" id="pm2dot5-chart-container"></div>
-            </div>
-            <div id="pm10-chart" class="chart-container">
-                <div class="chart" id="pm10-chart-container"></div>
-            </div>
+    </div>
+    </div>
+    <div class="content">
+        <div id="temperature-chart" class="chart-container active">
+            <div class="chart" id="temperature-chart-container"></div>
         </div>
+        <div id="humidity-chart" class="chart-container">
+            <div class="chart" id="humidity-chart-container"></div>
+        </div>
+        <div id="pressure-chart" class="chart-container">
+            <div class="chart" id="pressure-chart-container"></div>
+        </div>
+        <div id="windspeed-chart" class="chart-container">
+            <div class="chart" id="windspeed-chart-container"></div>
+        </div>
+        <div id="windscale-chart" class="chart-container">
+            <div class="chart" id="windscale-chart-container"></div>
+        </div>
+        <div id="windangle-chart" class="chart-container">
+            <div class="chart" id="windangle-chart-container"></div>
+        </div>
+        <div id="winddirection-chart" class="chart-container">
+            <div class="chart" id="winddirection-chart-container"></div>
+        </div>
+        <div id="noise-chart" class="chart-container">
+            <div class="chart" id="noise-chart-container"></div>
+        </div>
+        <div id="rain-chart" class="chart-container">
+            <div class="chart" id="rain-chart-container"></div>
+        </div>
+        <div id="pm2dot5-chart" class="chart-container">
+            <div class="chart" id="pm2dot5-chart-container"></div>
+        </div>
+        <div id="pm10-chart" class="chart-container">
+            <div class="chart" id="pm10-chart-container"></div>
+        </div>
+        <div id="map-chart" class="chart-container">
+            <div class="chart map" id="map-chart-container"></div>
+        </div>
+    </div>
     </div>
     <script>
         document.querySelectorAll('.value-box').forEach(item => {
@@ -250,7 +312,9 @@
 
                 // 获取并渲染数据
                 const type = item.getAttribute('data-type');
-                fetchChartData(type, chartDom);
+                if (type !== 'map') {
+                    fetchChartData(type, chartDom);
+                }
             });
         });
 
@@ -301,28 +365,28 @@
                     text: title
                 },
                 visualMap: [
-                {
-                  show: false,
-                  type: 'continuous',
-                  seriesIndex: 0,
-                  min: yMin/1.1,
-                  max: yMax*1.1,
-                  hoverLink:true,
-                  inRange:{
-                    color:['rgb(255, 214, 27)','rgb(255, 149, 68)','rgb(255, 87, 56)']
-                  }
-                }
-              ],
+                    {
+                        show: false,
+                        type: 'continuous',
+                        seriesIndex: 0,
+                        min: yMin / 1.1,
+                        max: yMax * 1.1,
+                        hoverLink: true,
+                        inRange: {
+                            color: ['rgb(255, 214, 27)', 'rgb(255, 149, 68)', 'rgb(255, 87, 56)']
+                        }
+                    }
+                ],
                 tooltip: {
                     trigger: 'axis'
                 },
-                toolbox:{
-                    feature:{
-                        dataZoom:{
-                            yAxisIndex:'none'
+                toolbox: {
+                    feature: {
+                        dataZoom: {
+                            yAxisIndex: 'none'
                         },
-                        restore:{},
-                        saveAsImage:{}
+                        restore: {},
+                        saveAsImage: {}
                     }
                 },
                 xAxis: {
@@ -334,45 +398,45 @@
                     min: yMin,
                     max: yMax
                 },
-                dataZoom:[
-                {
-                    type:'inside',
-                    start:0,
-                    end:100
-                },{
-                    start:0,
-                    end:100
-                }
+                dataZoom: [
+                    {
+                        type: 'inside',
+                        start: 0,
+                        end: 100
+                    }, {
+                        start: 0,
+                        end: 100
+                    }
                 ],
                 series: [{
                     data: yData,
                     type: 'line',
-                    symbol:'none',
-                    sampling:'lttb',
-                    itemStyle:{
-                        color:'#964B00'
+                    symbol: 'none',
+                    sampling: 'lttb',
+                    itemStyle: {
+                        color: '#964B00'
                     },
-                    markPoint:{
-                        data:[
-                        {type:'max',name:'Max'},
-                        {type:'min',name:'Min'}
+                    markPoint: {
+                        data: [
+                            { type: 'max', name: 'Max' },
+                            { type: 'min', name: 'Min' }
                         ]
                     },
-                    markLine:{
-                        data:[{type:'average',name:'Avg'}]
+                    markLine: {
+                        data: [{ type: 'average', name: 'Avg' }]
                     },
                     areaStyle: {
                         color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                          {
-                            offset: 1,
-                            color: 'rgb(255, 158, 68)'
-                          },
-                          {
-                            offset: 0,
-                            color: 'rgb(255, 70, 131)'
-                          }
+                            {
+                                offset: 1,
+                                color: 'rgb(255, 158, 68)'
+                            },
+                            {
+                                offset: 0,
+                                color: 'rgb(255, 70, 131)'
+                            }
                         ])
-                      },
+                    },
                     smooth: true
                 }]
             };
@@ -396,6 +460,52 @@
             fetchLatestData();
             setInterval(fetchLatestData, 60000); // 每分钟刷新一次最新数据
         });
+
+        require([
+            "esri/Map",
+            "esri/views/MapView",
+            "esri/Graphic"
+        ], function (Map, MapView, Graphic) {
+            const map = new Map({
+                basemap: "streets-vector"
+            });
+
+            const view = new MapView({
+                container: "map-chart-container",
+                map: map,
+                center: [113.2683, 23.109866], // 中心坐标
+                zoom: 15
+            });
+
+            function addMarker(latitude, longitude) {
+                const point = {
+                    type: "point",
+                    longitude: longitude,
+                    latitude: latitude
+                };
+
+                const markerSymbol = {
+                    type: "simple-marker",
+                    color: [226, 119, 40],
+                    outline: {
+                        color: [255, 255, 255],
+                        width: 2
+                    }
+                };
+
+                const pointGraphic = new Graphic({
+                    geometry: point,
+                    symbol: markerSymbol
+                });
+
+                view.graphics.add(pointGraphic);
+            }
+
+            document.querySelector('.value-box[data-chart="map-chart"]').addEventListener('click', () => {
+                addMarker(23.109866, 113.2683); // 添加标记点
+            });
+        });
     </script>
 </body>
+
 </html>
