@@ -11,20 +11,23 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 pwd = "/home/exdragine/UMD-Client"
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
-
-
-def read_data():
-    df = pd.read_csv(f"{pwd}/data/latest_3h.csv")
-    df['time'] = pd.to_datetime(df['time'], unit='s', origin="1970-01-01 08:00:00")  # Assuming time is in Unix timestamp format
-    return df
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -36,7 +39,7 @@ async def index(request: Request):
 
 @app.get("/status")
 async def api():
-    df = pd.read_csv(f"{pwd}/data/latest_3h.csv")
+    df = pd.read_csv(f"{pwd}/data/latest_mean.csv")
     response = {
         "time": str(df["time"].iloc[-1]),
         "temperature": float(df["temperature"].iloc[-1]),
@@ -57,14 +60,13 @@ async def api():
 @app.get("/api/download")
 async def download(year=0, month=0, day=0):
     if year == 0 or month == 0 or day == 0:
-        return FileResponse(f"{pwd}/data/latest_1d.csv")
+        return FileResponse(f"{pwd}/data/latest_mean.csv")
     if year and month and day:
         try:
             datetime.datetime(year, month, day)
             return FileResponse(f"{pwd}/data/{str(year)}/{str(month)}/{str(day)}.csv")
         except:
             return "format illeged"
-
 
 class types(enum.Enum):
     temperature = "temperature"
@@ -80,9 +82,10 @@ class types(enum.Enum):
     rain = "rain"
 
 
-@app.post("/api/charts")
+@app.get("/api/charts")
 async def get_charts(type: types):
-    df = read_data()
+    df = pd.read_csv(f"{pwd}/data/latest_mean.csv")
+    df['time'] = pd.to_datetime(df['time'], unit='s', origin="1970-01-01 08:00:00")  # Assuming time is in Unix timestamp format
     df['time'] = df['time'].astype(str)  # 将Timestamp类型转换为字符串
     response = {}
     response["time"] = df["time"].to_list()
@@ -98,8 +101,6 @@ async def update():
     except:
         pass
 
-
 if __name__ == "__main__":
     import uvicorn
-
     uvicorn.run(app, host="0.0.0.0", port=80)

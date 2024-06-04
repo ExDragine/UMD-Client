@@ -7,7 +7,7 @@
     <title>李华の气象站</title>
     <script type="module" src="https://unpkg.com/@fluentui/web-components"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
-    <script src="https://js.arcgis.com/4.24/"></script>
+    <script src="https://js.arcgis.com/4.29/"></script>
     <link rel="stylesheet" href="{{ url_for('static', path='FluentSystemIcons-Resizable.css') }}">
     <style>
         * {
@@ -321,7 +321,7 @@
         async function fetchChartData(type, chartDom) {
             try {
                 const response = await fetch(`http://lihua.cncoresteb.com/api/charts?type=${type}`, {
-                    method: 'POST',
+                    method: 'GET',
                     headers: {
                         'Content-Type': 'application/json'
                     }
