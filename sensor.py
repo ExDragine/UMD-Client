@@ -148,8 +148,8 @@ def main():
         f.seek(0)
         data = f.readlines()
         titles = [data[0]]
-        if len(data) > 1441:
-            data = titles + data[-1440:] + [",".join(map(str, max_result)) + "\n"]
+        if len(data) > 4321:
+            data = titles + data[-4320:] + [",".join(map(str, max_result)) + "\n"]
         else:
             data = data + [",".join(map(str, max_result)) + "\n"]
         f.seek(0)
@@ -159,8 +159,8 @@ def main():
         f.seek(0)
         data = f.readlines()
         titles = [data[0]]
-        if len(data) > 1441:
-            data = titles + data[-1440:] + [",".join(map(str, mean_result)) + "\n"]
+        if len(data) > 4321:
+            data = titles + data[-4320:] + [",".join(map(str, mean_result)) + "\n"]
         else:
             data = data + [",".join(map(str, mean_result)) + "\n"]
         f.seek(0)
