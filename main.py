@@ -58,22 +58,26 @@ async def api():
 
 
 @app.get("/api/download")
-async def download(year=0, month=0, day=0):
+async def download(value="mean", year=0, month=0, day=0):
     if year == 0 or month == 0 or day == 0:
-        return FileResponse(f"{pwd}/data/latest_mean.csv")
+        try:
+            return FileResponse(f"{pwd}/data/latest_{value}.csv")
+        except FileNotFoundError as e:
+            return "Unable to get value.\n" + str(e)
     if year and month and day:
         try:
             datetime.datetime(year, month, day)
             return FileResponse(f"{pwd}/data/{str(year)}/{str(month)}/{str(day)}.csv")
-        except:
-            return "format illeged"
+        except FileNotFoundError as e:
+            return "format illeged\n" + str(object=e)
+
 
 class types(enum.Enum):
     temperature = "temperature"
     humidity = "humidity"
     wind_speed = "wind_speed"
-    wind_scale="wind_scale"
-    wind_direction="wind_direction"
+    wind_scale = "wind_scale"
+    wind_direction = "wind_direction"
     wind_angle = "wind_angle"
     noise = "noise"
     pm2dot5 = "pm2dot5"
@@ -83,13 +87,14 @@ class types(enum.Enum):
 
 
 @app.get("/api/charts")
-async def get_charts(type: types):
-    df = pd.read_csv(f"{pwd}/data/latest_mean.csv")
-    df['time'] = pd.to_datetime(df['time'], unit='s', origin="1970-01-01 08:00:00")  # Assuming time is in Unix timestamp format
+async def get_charts(t: types, value="mean"):
+    df = pd.read_csv(f"{pwd}/data/latest_{value}.csv")
+    # Assuming time is in Unix timestamp format
+    df['time'] = pd.to_datetime(df['time'], unit='s', origin="1970-01-01 08:00:00")
     df['time'] = df['time'].astype(str)  # 将Timestamp类型转换为字符串
     response = {}
     response["time"] = df["time"].to_list()
-    response[type.name] = df[type.name].to_list()
+    response[t.name] = df[t.name].to_list()
     return response
 
 
@@ -98,9 +103,11 @@ async def update():
     try:
         os.system(f"bash {pwd}/update.sh")
         return "finish"
-    except:
-        pass
+    except OSError as e:
+        return str(e)
+
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=80)
