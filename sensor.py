@@ -84,17 +84,6 @@ def get_th() -> tuple[float, float]:
         return 0.0, 0.0
 
 
-def get_rain() -> float:
-    port.write(bytes(code["rain"]))
-    time.sleep(0.01)
-    response = port.read(7)
-    if len(response) == 7:
-        r = int.from_bytes(response[3:5], byteorder='big') / 10
-        return r
-    else:
-        return 0.0
-
-
 def update_mem():
     sensor_data = [0.0] * (len(funcs) + 3)
     sensor_data[0] = int(time.time())
@@ -117,10 +106,9 @@ def main():
     mem_data_T = list(zip(*list(mem_data)))
     del mem_data_T[0]
     max_result = [max(map(float, obj)) for obj in mem_data_T]
-    mean_result = [sum(map(float, obj)) / len(obj) for obj in mem_data_T]
-    sensor_rain = get_rain()
-    max_result[-1] = sensor_rain
-    mean_result[-1] = sensor_rain
+    mean_result = [round(sum(map(float, obj)) / 60, 2) for obj in mem_data_T]
+    max_result[-1] = mem_data[-1][-1]
+    mean_result[-1] = mem_data[-1][-1]
     max_result.insert(0, timestamp)
     mean_result.insert(0, timestamp)
 

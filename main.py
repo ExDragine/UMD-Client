@@ -45,8 +45,8 @@ async def api():
         "temperature": float(df["temperature"].iloc[-1]),
         "humidity": float(df["humidity"].iloc[-1]),
         "wind_speed": float(df["wind_speed"].iloc[-1]),
-        "wind_scale": float(df["wind_scale"].iloc[-1]),
-        "wind_direction": float(df["wind_direction"].iloc[-1]),
+        "wind_scale": round(df["wind_scale"].iloc[-1]),
+        "wind_direction": round(df["wind_direction"].iloc[-1]),
         "wind_angle": float(df["wind_angle"].iloc[-1]),
         "noise": float(df["noise"].iloc[-1]),
         "pm2.5": float(df["pm2dot5"].iloc[-1]),
@@ -87,14 +87,17 @@ class types(enum.Enum):
 
 
 @app.get("/api/charts")
-async def get_charts(t: types, value="mean"):
-    df = pd.read_csv(f"{pwd}/data/latest_{value}.csv")
+async def get_charts(type: types):
+    df = pd.read_csv(f"{pwd}/data/latest_mean.csv")
     # Assuming time is in Unix timestamp format
     df['time'] = pd.to_datetime(df['time'], unit='s', origin="1970-01-01 08:00:00")
     df['time'] = df['time'].astype(str)  # 将Timestamp类型转换为字符串
     response = {}
     response["time"] = df["time"].to_list()
-    response[t.name] = df[t.name].to_list()
+    if type.value == "wind_scale" or type.value == "wind_direction":
+        response[type.name] = df[type.name].round(0).to_list()
+    else:
+        response[type.name] = df[type.name].to_list()
     return response
 
 
