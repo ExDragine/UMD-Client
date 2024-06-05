@@ -13,20 +13,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.blocking import BlockingScheduler
 
 pwd = "/home/exdragine/UMD-Client/data"
-names = [
-    "time",
-    "temperature",
-    "humidity",
-    "wind_speed",
-    "wind_scale",
-    "wind_direction",
-    "wind_angle",
-    "noise",
-    "pm2dot5",
-    "pm10",
-    "pressure",
-    "rain",
-]
+names = ["time", "temperature", "humidity", "wind_speed", "wind_scale", "wind_direction", "wind_angle", "noise", "pm2dot5", "pm10", "pressure", "rain"]
 funcs = ["wind_speed", "wind_scale", "wind_direction", "wind_angle", "noise", "pm2dot5", "pm10", "pressure", "rain"]
 code = {
     "wind_speed": [0x01, 0x03, 0x01, 0xF4, 0x00, 0x01, 0xC4, 0x04],
@@ -105,24 +92,19 @@ def main():
     timestamp = int(time.time())
     mem_data_T = list(zip(*list(mem_data)))
     del mem_data_T[0]
-    max_result = [max(map(float, obj)) for obj in mem_data_T]
-    mean_result = [round(sum(map(float, obj)) / 60, 2) for obj in mem_data_T]
-    max_result[-1] = mem_data[-1][-1]
+    [obj.remove(max(obj)) for obj in mem_data_T]
+    [obj.remove(min(obj)) for obj in mem_data_T]
+    mean_result = [round(sum(map(float, obj)) / 118, 2) for obj in mem_data_T]
     mean_result[-1] = mem_data[-1][-1]
-    max_result.insert(0, timestamp)
     mean_result.insert(0, timestamp)
 
     everyday = f"{pwd}/{year}/{month}/{day}.csv"
-    latest_max = f"{pwd}/latest_max.csv"
     latest_mean = f"{pwd}/latest_mean.csv"
 
     os.makedirs(f"{pwd}/{year}/{month}", exist_ok=True)
 
     if not os.path.exists(everyday):
         with open(everyday, "w", encoding='utf-8') as f:
-            f.write(",".join(names) + "\n")
-    if not os.path.exists(latest_max):
-        with open(latest_max, "w", encoding='utf-8') as f:
             f.write(",".join(names) + "\n")
     if not os.path.exists(latest_mean):
         with open(latest_mean, "w", encoding='utf-8') as f:
@@ -132,17 +114,6 @@ def main():
         for data in list(mem_data):
             f.write(",".join(map(str, data)) + "\n")
 
-    with open(latest_max, "r+", encoding='utf-8') as f:
-        f.seek(0)
-        data = f.readlines()
-        titles = [data[0]]
-        if len(data) > 4321:
-            data = titles + data[-4320:] + [",".join(map(str, max_result)) + "\n"]
-        else:
-            data = data + [",".join(map(str, max_result)) + "\n"]
-        f.seek(0)
-        f.truncate()
-        f.writelines(data)
     with open(latest_mean, "r+", encoding='utf-8') as f:
         f.seek(0)
         data = f.readlines()
