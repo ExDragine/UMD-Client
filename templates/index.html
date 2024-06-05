@@ -192,6 +192,13 @@
     <div class="container">
         <div class="sidebar">
             <div class="latest-values-container">
+                <div id="overview-info" class="latest-values">
+                    <div class="latest-values-title">总览</div>
+                    <div class="value-box" data-type="overview" data-chart="overview-chart">
+                        <i class="fluent-icons icon-ic_fluent_overview_20_regular"></i>
+                        总览 <span></span>
+                    </div>
+                </div>
                 <div id="temperature-info" class="latest-values">
                     <div class="latest-values-title">大气</div>
                     <div class="value-box" data-type="temperature" data-chart="temperature-chart">
@@ -257,7 +264,10 @@
     </div>
     </div>
     <div class="content">
-        <div id="temperature-chart" class="chart-container active">
+        <div id="overview-chart" class="chart-container active">
+            <div class="chart" id="overview-chart-container"></div>
+        </div>
+        <div id="temperature-chart" class="chart-container">
             <div class="chart" id="temperature-chart-container"></div>
         </div>
         <div id="humidity-chart" class="chart-container">
@@ -312,11 +322,181 @@
 
                 // 获取并渲染数据
                 const type = item.getAttribute('data-type');
-                if (type !== 'map') {
+                if (type !== 'map' && type !== 'overview') {
                     fetchChartData(type, chartDom);
+                } else if (type === 'overview') {
+                    fetchOverviewData(chartDom);
                 }
             });
         });
+        async function fetchOverviewData(chartDom) {
+            try {
+                const types = ['temperature', 'humidity', 'pressure', 'wind_speed', 'noise', 'rain', 'pm2dot5', 'pm10'];
+                const promises = types.map(type => fetch(`http://lihua.cncoresteb.com/api/charts?type=${type}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                }).then(response => response.json()));
+
+                const data = await Promise.all(promises);
+
+                const xData = data[0].time.map(t => new Date(t).toLocaleString());
+                const temperatureData = data[0].temperature;
+                const humidityData = data[1].humidity;
+                const pressureData = data[2].pressure;
+                const windSpeedData = data[3].wind_speed;
+                const noiseData = data[4].noise;
+                const rainData = data[5].rain;
+                const pm25Data = data[6].pm2dot5;
+                const pm10Data = data[7].pm10;
+
+                createOverviewChart(chartDom, xData, temperatureData, humidityData, pressureData, windSpeedData, noiseData, rainData, pm25Data, pm10Data);
+            } catch (error) {
+                console.error('Error fetching overview data:', error);
+            }
+        }
+        function createOverviewChart(chartDom, xData, temperatureData, humidityData, pressureData, windSpeedData, noiseData, rainData, pm25Data, pm10Data) {
+            var chart = echarts.init(chartDom);
+            var option = {
+                tooltip: {
+                    trigger: 'axis'
+                },
+                legend: {
+                    data: ['温度', '湿度', '气压', '风速', '噪声', '降雨量', 'PM2.5', 'PM10']
+                },
+                toolbox: {
+                    feature: {
+                        dataZoom: {
+                            yAxisIndex: 'none'
+                        },
+                        restore: {},
+                        saveAsImage: {}
+                    }
+                },
+                xAxis: {
+                    type: 'category',
+                    data: xData
+                },
+                yAxis: [
+                    {
+                        type: 'value',
+                        name: '温度 (°C)',
+                        position: 'left'
+                    },
+                    {
+                        type: 'value',
+                        name: '湿度 (%)',
+                        position: 'right'
+                    },
+                    {
+                        type: 'value',
+                        name: '气压 (hPa)',
+                        position: 'left',
+                        offset: 60
+                    },
+                    {
+                        type: 'value',
+                        name: '风速 (m/s)',
+                        position: 'right',
+                        offset: 60
+                    },
+                    {
+                        type: 'value',
+                        name: '噪声 (dB)',
+                        position: 'left',
+                        offset: 120
+                    },
+                    {
+                        type: 'value',
+                        name: '降雨量 (mm)',
+                        position: 'right',
+                        offset: 120
+                    },
+                    {
+                        type: 'value',
+                        name: 'PM2.5 (µg/m³)',
+                        position: 'left',
+                        offset: 180
+                    },
+                    {
+                        type: 'value',
+                        name: 'PM10 (µg/m³)',
+                        position: 'right',
+                        offset: 180
+                    }
+                ],
+                dataZoom: [
+                    {
+                        type: 'inside',
+                        start: 0,
+                        end: 100
+                    }, {
+                        start: 0,
+                        end: 100
+                    }
+                ],
+                series: [
+                    {
+                        name: '温度',
+                        type: 'line',
+                        data: temperatureData,
+                        yAxisIndex: 0,
+                        smooth: true
+                    },
+                    {
+                        name: '湿度',
+                        type: 'line',
+                        data: humidityData,
+                        yAxisIndex: 1,
+                        smooth: true
+                    },
+                    {
+                        name: '气压',
+                        type: 'line',
+                        data: pressureData,
+                        yAxisIndex: 2,
+                        smooth: true
+                    },
+                    {
+                        name: '风速',
+                        type: 'line',
+                        data: windSpeedData,
+                        yAxisIndex: 3,
+                        smooth: true
+                    },
+                    {
+                        name: '噪声',
+                        type: 'line',
+                        data: noiseData,
+                        yAxisIndex: 4,
+                        smooth: true
+                    },
+                    {
+                        name: '降雨量',
+                        type: 'line',
+                        data: rainData,
+                        yAxisIndex: 5,
+                        smooth: true
+                    },
+                    {
+                        name: 'PM2.5',
+                        type: 'line',
+                        data: pm25Data,
+                        yAxisIndex: 6,
+                        smooth: true
+                    },
+                    {
+                        name: 'PM10',
+                        type: 'line',
+                        data: pm10Data,
+                        yAxisIndex: 7,
+                        smooth: true
+                    }
+                ]
+            };
+            chart.setOption(option);
+        }
 
         async function fetchChartData(type, chartDom) {
             try {
@@ -452,9 +632,9 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            // 默认加载温度图表数据
+            // 默认加载总览图表数据
             const defaultChartDom = document.querySelector('.chart-container.active .chart');
-            fetchChartData('temperature', defaultChartDom);
+            fetchOverviewData(defaultChartDom);
 
             // 获取并显示最新数据
             fetchLatestData();
