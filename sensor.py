@@ -5,13 +5,19 @@
 #   \/_____/   \/_/  \/_/   \/____/
 
 from collections import deque
+from hashlib import sha3_256
 import time
 import os
 import datetime
+import json
+import uuid
 import serial
+
+# import requests
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.blocking import BlockingScheduler
+
 
 pwd = "/home/exdragine/UMD-Client/data"
 names = ["time", "temperature", "humidity", "wind_speed", "wind_scale", "wind_direction", "wind_angle", "noise", "pm2dot5", "pm10", "pressure", "rain"]
@@ -37,6 +43,7 @@ code = {
 # 初始化端口与临时存储变量
 port = serial.Serial("/dev/ttyS0", 4800, parity=serial.PARITY_NONE, bytesize=serial.EIGHTBITS, stopbits=serial.STOPBITS_ONE, timeout=0.1)
 mem_data = deque(maxlen=60)  # 定义一个长度为60的双向列表, 临时存储每分钟的数据
+mean_result = []
 
 
 # 定义轮询方法
@@ -91,8 +98,8 @@ def update_mem():
     if t is not None and h is not None:
         sensor_data[1], sensor_data[2] = t, h
         time.sleep(0.01)
-    for i in range(len(funcs)):
-        data = get_data(funcs[i])
+    for i, f in enumerate(funcs):
+        data = get_data(f)
         if data is not None:
             sensor_data[i + 3] = data
         time.sleep(0.01)
@@ -141,6 +148,49 @@ def main():
         f.seek(0)
         f.truncate()
         f.writelines(data)
+
+
+def transmit():
+    """发送数据
+    """
+    key = ""
+    name = ""
+    # 读取数据并提取最新一行
+    # data = pd.read_csv("./data/latest_mean.csv").tail(1).to_dict(orient='records')[0]
+    data = {
+        "temperature": mean_result[1],
+        "humidity": mean_result[2],
+        "wind_speed": mean_result[3],
+        "wind_angel": mean_result[6],
+        "noise": mean_result[7],
+        "pm2dot5": mean_result[8],
+        "pm10": mean_result[9],
+        "pressure": mean_result[10],
+        "rain": mean_result[11],
+    }
+
+    # 创建字典
+    p = {
+        "id": str(uuid.uuid5(namespace=uuid.NAMESPACE_DNS, name=name)),  # 气象站的标识符
+        "timestamp": int(time.time()),  # 确保 timestamp 是整数
+        "key": key,
+        "data": data,
+    }
+
+    # 添加三个空的占位符
+    p["data"]["placeholder1"] = 0.0
+    p["data"]["placeholder2"] = 0.0
+    p["data"]["placeholder3"] = 0.0
+
+    # 计算 SHA3-256 哈希值
+    p_json = json.dumps(p["data"], sort_keys=True, default=str).encode()
+    p["sign"] = sha3_256(p_json).hexdigest()
+
+    # 发送结果
+    # try:
+    #     requests.post("0.0.0.0", p, timeout=1)
+    # except requests.exceptions.ConnectionError as e:
+    #     raise e
 
 
 # 入口
