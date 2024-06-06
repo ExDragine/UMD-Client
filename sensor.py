@@ -3,6 +3,7 @@
 # \ \ \_\ \  \ \ \-./\ \  \ \ \/\ \
 #  \ \_____\  \ \_\ \ \_\  \ \____-
 #   \/_____/   \/_/  \/_/   \/____/
+
 from collections import deque
 import time
 import os
@@ -33,11 +34,21 @@ code = {
     "compass": [0x01, 0x03, 0x01, 0x02, 0x00, 0x01, 0x24, 0x34],
 }
 
+# 初始化端口与临时存储变量
 port = serial.Serial("/dev/ttyS0", 4800, parity=serial.PARITY_NONE, bytesize=serial.EIGHTBITS, stopbits=serial.STOPBITS_ONE, timeout=0.1)
-mem_data = deque(maxlen=60)
+mem_data = deque(maxlen=60)  # 定义一个长度为60的双向列表, 临时存储每分钟的数据
 
 
+# 定义轮询方法
 def get_data(func) -> float:
+    """轮询传感器数值并返回
+
+    Args:
+        func (string): 查询内容, 对应code变量中的16进制指令
+
+    Returns:
+        float: 返回浮点型的数值
+    """
     port.write(bytes(code[func]))
     time.sleep(0.01)
     response = port.read(7)
@@ -54,11 +65,12 @@ def get_data(func) -> float:
         return 0.0
 
 
+# 定义温度与湿度查询方法
 def get_th() -> tuple[float, float]:
-    """Get Temperature and Humidity
+    """查询传感器湿度与温度
 
     Returns:
-        tuple[float, float]: _description_
+        tuple[float, float]: 返回传感器湿度与温度
     """
     port.write(bytes(code["T&h"]))
     time.sleep(0.01)
@@ -72,6 +84,7 @@ def get_th() -> tuple[float, float]:
 
 
 def update_mem():
+    """使用查询返回的值更新mem_data"""
     sensor_data = [0.0] * (len(funcs) + 3)
     sensor_data[0] = int(time.time())
     t, h = get_th()
@@ -87,17 +100,20 @@ def update_mem():
 
 
 def main():
+    """处理数据,存储数据"""
     now = datetime.datetime.now()
     year, month, day = str(now.year), str(now.month), str(now.day)
-    timestamp = int(time.time())
-    mem_data_T = list(zip(*list(mem_data)))
-    del mem_data_T[0]
-    [obj.remove(max(obj)) for obj in mem_data_T]
-    [obj.remove(min(obj)) for obj in mem_data_T]
-    mean_result = [round(sum(map(float, obj)) / 118, 2) for obj in mem_data_T]
-    mean_result[-1] = mem_data[-1][-1]
+    timestamp = int(time.time())  # 秒级timestamp
+    mem_data_T = list(zip(*list(mem_data)))  # 将mem_data转置,每一行对应一个变量
+    del mem_data_T[0]  # 删除timestamp
+    del mem_data_T[-1]  # 使用最新读取的雨量数据替换平均后的雨量
+    [list(obj).remove(max(obj)) for obj in mem_data_T]  # 去掉一个最大值
+    [list(obj).remove(min(obj)) for obj in mem_data_T]  # 去掉一个最小值
+    mean_result = [round(sum(map(float, obj)) / len(list(obj)), 2) for obj in mem_data_T]  # 对每个分类的变量取平均值
+    mean_result.append(mem_data[-1][-1])
     mean_result.insert(0, timestamp)
 
+    # everyday存储原始数据,latest_mean存储平均后的数据
     everyday = f"{pwd}/{year}/{month}/{day}.csv"
     latest_mean = f"{pwd}/latest_mean.csv"
 
@@ -127,6 +143,7 @@ def main():
         f.writelines(data)
 
 
+# 入口
 if __name__ == "__main__":
     sensor_scheduler = BackgroundScheduler()
     sensor_scheduler.add_job(update_mem, 'interval', seconds=1)
