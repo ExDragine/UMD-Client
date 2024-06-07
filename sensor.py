@@ -5,12 +5,9 @@
 #   \/_____/   \/_/  \/_/   \/____/
 
 from collections import deque
-from hashlib import sha3_256
 import time
 import os
 import datetime
-import json
-import uuid
 import serial
 
 # import requests
@@ -20,8 +17,8 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 
 
 pwd = "/home/exdragine/UMD-Client/data"
-names = ["time", "temperature", "humidity", "wind_speed", "wind_scale", "wind_direction", "wind_angle", "noise", "pm2dot5", "pm10", "pressure", "rain"]
-funcs = ["wind_speed", "wind_scale", "wind_direction", "wind_angle", "noise", "pm2dot5", "pm10", "pressure", "rain"]
+names = ["time", "temperature", "humidity", "wind_speed", "wind_angle", "noise", "pm2dot5", "pm10", "pressure", "rain"]
+funcs = ["wind_speed", "wind_angle", "noise", "pm2dot5", "pm10", "pressure", "rain"]
 code = {
     "wind_speed": [0x01, 0x03, 0x01, 0xF4, 0x00, 0x01, 0xC4, 0x04],
     "wind_scale": [0x01, 0x03, 0x01, 0xF5, 0x00, 0x01, 0x95, 0xC4],
@@ -43,7 +40,6 @@ code = {
 # 初始化端口与临时存储变量
 port = serial.Serial("/dev/ttyS0", 4800, parity=serial.PARITY_NONE, bytesize=serial.EIGHTBITS, stopbits=serial.STOPBITS_ONE, timeout=0.1)
 mem_data = deque(maxlen=60)  # 定义一个长度为60的双向列表, 临时存储每分钟的数据
-mean_result = []
 
 
 # 定义轮询方法
@@ -111,12 +107,11 @@ def main():
     now = datetime.datetime.now()
     year, month, day = str(now.year), str(now.month), str(now.day)
     timestamp = int(time.time())  # 秒级timestamp
-    mem_data_T = list(zip(*list(mem_data)))  # 将mem_data转置,每一行对应一个变量
-    del mem_data_T[0]  # 删除timestamp
-    del mem_data_T[-1]  # 使用最新读取的雨量数据替换平均后的雨量
-    [list(obj).remove(max(obj)) for obj in mem_data_T]  # 去掉一个最大值
-    [list(obj).remove(min(obj)) for obj in mem_data_T]  # 去掉一个最小值
-    mean_result = [round(sum(map(float, obj)) / len(list(obj)), 2) for obj in mem_data_T]  # 对每个分类的变量取平均值
+    data_transposition = list(zip(*list(mem_data)))  # 将mem_data转置,每一行对应一个变量
+    del data_transposition[0]  # 删除timestamp
+    del data_transposition[-1]  # 使用最新读取的雨量数据替换平均后的雨量
+    data_transposition = [[item for item in obj if item != max(obj) and item != min(obj)] for obj in data_transposition]
+    mean_result = [round(sum(map(float, obj)) / len(list(obj)), 2) for obj in data_transposition]  # 对每个分类的变量取平均值
     mean_result.append(mem_data[-1][-1])
     mean_result.insert(0, timestamp)
 
@@ -150,51 +145,17 @@ def main():
         f.writelines(data)
 
 
-def transmit():
-    """发送数据
-    """
-    key = ""
-    name = ""
-    # 读取数据并提取最新一行
-    # data = pd.read_csv("./data/latest_mean.csv").tail(1).to_dict(orient='records')[0]
-    data = {
-        "temperature": mean_result[1],
-        "humidity": mean_result[2],
-        "wind_speed": mean_result[3],
-        "wind_angel": mean_result[6],
-        "noise": mean_result[7],
-        "pm2dot5": mean_result[8],
-        "pm10": mean_result[9],
-        "pressure": mean_result[10],
-        "rain": mean_result[11],
-    }
+def merge_data():
+    import pandas as pd
 
-    # 创建字典
-    p = {
-        "id": str(uuid.uuid5(namespace=uuid.NAMESPACE_DNS, name=name)),  # 气象站的标识符
-        "timestamp": int(time.time()),  # 确保 timestamp 是整数
-        "key": key,
-        "data": data,
-    }
-
-    # 添加三个空的占位符
-    p["data"]["placeholder1"] = 0.0
-    p["data"]["placeholder2"] = 0.0
-    p["data"]["placeholder3"] = 0.0
-
-    # 计算 SHA3-256 哈希值
-    p_json = json.dumps(p["data"], sort_keys=True, default=str).encode()
-    p["sign"] = sha3_256(p_json).hexdigest()
-
-    # 发送结果
-    # try:
-    #     requests.post("0.0.0.0", p, timeout=1)
-    # except requests.exceptions.ConnectionError as e:
-    #     raise e
+    df = pd.read_csv("/home/exdragine/UMD-Client/data/latest_mean.csv")
+    df.drop(columns=["wind_scale", "wind_angle"])
+    df.to_csv("/home/exdragine/UMD-Client/data/latest_mean.csv")
 
 
 # 入口
 if __name__ == "__main__":
+    merge_data()
     sensor_scheduler = BackgroundScheduler()
     sensor_scheduler.add_job(update_mem, 'interval', seconds=1)
     sensor_scheduler.start()
