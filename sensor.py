@@ -110,8 +110,8 @@ def main():
     data_transposition = list(zip(*list(mem_data)))  # 将mem_data转置,每一行对应一个变量
     del data_transposition[0]  # 删除timestamp
     del data_transposition[-1]  # 使用最新读取的雨量数据替换平均后的雨量
-    mean_result = [round(sum(map(float, obj)) / len(list(obj)), 2) for obj in data_transposition]  # 对每个分类的变量取平均值    mean_result = [round(sum(map(float, obj)) / len(list(obj)), 2) for obj in data_transposition]  # 对每个分类的变量取平均值
-    mean_result.append(mem_data[-1][-1])
+    mean_result = [round(sum(map(float, obj)) / len(list(obj)), 2) for obj in data_transposition]  # 对每个分类的变量取平均值
+    mean_result.append(mem_data[-1][-1]-mem_data[-1][0])
     mean_result.insert(0, timestamp)
 
     # everyday存储原始数据,latest_mean存储平均后的数据
@@ -135,8 +135,8 @@ def main():
         f.seek(0)
         data = f.readlines()
         titles = [data[0]]
-        if len(data) > 4321:
-            data = titles + data[-4320:] + [",".join(map(str, mean_result)) + "\n"]
+        if len(data) > 1441:
+            data = titles + data[-1440:] + [",".join(map(str, mean_result)) + "\n"]
         else:
             data = data + [",".join(map(str, mean_result)) + "\n"]
         f.seek(0)
