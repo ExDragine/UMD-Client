@@ -220,17 +220,9 @@
                         <i class="fluent-icons icon-ic_fluent_top_speed_20_regular"></i>
                         风速: <span id="wind_speed-value"></span> m/s
                     </div>
-                    <div class="value-box" data-type="wind_scale" data-chart="windscale-chart">
-                        <i class="fluent-icons icon-ic_fluent_flag_20_regular"></i>
-                        风力: <span id="wind_scale-value"></span>
-                    </div>
                     <div class="value-box" data-type="wind_angle" data-chart="windangle-chart">
                         <i class="fluent-icons icon-ic_fluent_location_arrow_20_regular"></i>
                         风向角度: <span id="wind_angle-value"></span>°
-                    </div>
-                    <div class="value-box" data-type="wind_direction" data-chart="winddirection-chart">
-                        <i class="fluent-icons icon-ic_fluent_compass_northwest_20_regular"></i>
-                        风向: <span id="wind_direction-value"></span>
                     </div>
                 </div>
                 <div id="other-info" class="latest-values">
@@ -525,12 +517,10 @@
                 document.getElementById('humidity-value').textContent = latestData.humidity;
                 document.getElementById('pressure-value').textContent = latestData.pressure;
                 document.getElementById('wind_speed-value').textContent = latestData.wind_speed;
-                document.getElementById('wind_scale-value').textContent = latestData.wind_scale;
                 document.getElementById('wind_angle-value').textContent = latestData.wind_angle;
-                document.getElementById('wind_direction-value').textContent = latestData.wind_direction;
                 document.getElementById('noise-value').textContent = latestData.noise;
                 document.getElementById('rain-value').textContent = latestData.rain;
-                document.getElementById('pm2dot5-value').textContent = latestData["pm2.5"];
+                document.getElementById('pm2dot5-value').textContent = latestData.pm2dot5;
                 document.getElementById('pm10-value').textContent = latestData.pm10;
             } catch (error) {
                 console.error('Error fetching latest data:', error);

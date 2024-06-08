@@ -39,21 +39,7 @@ async def index(request: Request):
 
 @app.get("/status")
 async def api():
-    df = pd.read_csv(f"{pwd}/data/latest_mean.csv")
-    response = {
-        "time": str(df["time"].iloc[-1]),
-        "temperature": float(df["temperature"].iloc[-1]),
-        "humidity": float(df["humidity"].iloc[-1]),
-        "wind_speed": float(df["wind_speed"].iloc[-1]),
-        "wind_scale": round(df["wind_scale"].iloc[-1]),
-        "wind_direction": round(df["wind_direction"].iloc[-1]),
-        "wind_angle": float(df["wind_angle"].iloc[-1]),
-        "noise": float(df["noise"].iloc[-1]),
-        "pm2.5": float(df["pm2dot5"].iloc[-1]),
-        "pm10": float(df["pm10"].iloc[-1]),
-        "pressure": float(df["pressure"].iloc[-1]),
-        "rain": float(df["rain"].iloc[-1]),
-    }
+    response = pd.read_csv(f"{pwd}/data/latest_mean.csv").tail(1).to_dict(orient="records")[0]
     return response
 
 

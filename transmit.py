@@ -1,3 +1,9 @@
+#  __  __     __    __     _____
+# /\ \/\ \   /\ "-./  \   /\  __-.
+# \ \ \_\ \  \ \ \-./\ \  \ \ \/\ \
+#  \ \_____\  \ \_\ \ \_\  \ \____-
+#   \/_____/   \/_/  \/_/   \/____/
+
 import os
 import json
 import time
@@ -12,7 +18,7 @@ class Transmit:
     def __init__(self) -> None:
         self.key = "114514"
         self.station_name = "lihua"
-        self.sensor_data = r"D:\UMD-Client\data\latest_mean.csv"
+        self.sensor_data = "/home/exdragine/UMD-Client/data/latest_mean.csv"
         self.transmit_data = ""
         self.initial_check()
 

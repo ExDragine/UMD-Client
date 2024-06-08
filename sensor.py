@@ -110,8 +110,7 @@ def main():
     data_transposition = list(zip(*list(mem_data)))  # 将mem_data转置,每一行对应一个变量
     del data_transposition[0]  # 删除timestamp
     del data_transposition[-1]  # 使用最新读取的雨量数据替换平均后的雨量
-    data_transposition = [[item for item in obj if item != max(obj) and item != min(obj)] for obj in data_transposition]
-    mean_result = [round(sum(map(float, obj)) / len(list(obj)), 2) for obj in data_transposition]  # 对每个分类的变量取平均值
+    mean_result = [round(sum(map(float, obj)) / len(list(obj)), 2) for obj in data_transposition]  # 对每个分类的变量取平均值    mean_result = [round(sum(map(float, obj)) / len(list(obj)), 2) for obj in data_transposition]  # 对每个分类的变量取平均值
     mean_result.append(mem_data[-1][-1])
     mean_result.insert(0, timestamp)
 
@@ -145,17 +144,8 @@ def main():
         f.writelines(data)
 
 
-def merge_data():
-    import pandas as pd
-
-    df = pd.read_csv("/home/exdragine/UMD-Client/data/latest_mean.csv")
-    df.drop(columns=["wind_scale", "wind_angle"])
-    df.to_csv("/home/exdragine/UMD-Client/data/latest_mean.csv")
-
-
 # 入口
 if __name__ == "__main__":
-    merge_data()
     sensor_scheduler = BackgroundScheduler()
     sensor_scheduler.add_job(update_mem, 'interval', seconds=1)
     sensor_scheduler.start()
