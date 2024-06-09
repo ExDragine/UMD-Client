@@ -14,7 +14,13 @@ from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
 
+from apscheduler.schedulers.background import BackgroundScheduler
+
+from sensor import update_mem, main
+from transmit import Transmit
+
 app = FastAPI()
+t = Transmit()
 
 app.add_middleware(
     CORSMiddleware,
@@ -39,7 +45,9 @@ async def index(request: Request):
 
 @app.get("/status")
 async def api():
-    response = pd.read_csv(f"{pwd}/data/latest_mean.csv").tail(1).to_dict(orient="records")[0]
+    response = (
+        pd.read_csv(f"{pwd}/data/latest_mean.csv").tail(1).to_dict(orient="records")[0]
+    )
     return response
 
 
@@ -76,8 +84,8 @@ class types(enum.Enum):
 async def get_charts(type: types):
     df = pd.read_csv(f"{pwd}/data/latest_mean.csv")
     # Assuming time is in Unix timestamp format
-    df['time'] = pd.to_datetime(df['time'], unit='s', origin="1970-01-01 08:00:00")
-    df['time'] = df['time'].astype(str)  # 将Timestamp类型转换为字符串
+    df["time"] = pd.to_datetime(df["time"], unit="s", origin="1970-01-01 08:00:00")
+    df["time"] = df["time"].astype(str)  # 将Timestamp类型转换为字符串
     response = {}
     response["time"] = df["time"].to_list()
     if type.value == "wind_scale" or type.value == "wind_direction":
@@ -96,7 +104,18 @@ async def update():
         return str(e)
 
 
+def active_transfer():
+    t.transform_data()
+    t.send_data()
+
+
 if __name__ == "__main__":
+    sensor_scheduler = BackgroundScheduler()
+    sensor_scheduler.add_job(update_mem, "interval", seconds=1)
+    sensor_scheduler.add_job(active_transfer, "interval", seconds=30)
+    sensor_scheduler.add_job(main, "interval", seconds=60)
+    sensor_scheduler.start()
+
     import uvicorn
 
     uvicorn.run(app, host="0.0.0.0", port=80)

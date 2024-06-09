@@ -82,10 +82,3 @@ class Transmit:
                     pass
                 else:
                     raise e
-
-
-while True:
-    t = Transmit()
-    t.transform_data()
-    t.send_data()
-    time.sleep(30)

@@ -10,11 +10,6 @@ import os
 import datetime
 import serial
 
-# import requests
-
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.schedulers.blocking import BlockingScheduler
-
 
 pwd = "/home/exdragine/UMD-Client/data"
 names = ["time", "temperature", "humidity", "wind_speed", "wind_angle", "noise", "pm2dot5", "pm10", "pressure", "rain"]
@@ -142,13 +137,3 @@ def main():
         f.seek(0)
         f.truncate()
         f.writelines(data)
-
-
-# 入口
-if __name__ == "__main__":
-    sensor_scheduler = BackgroundScheduler()
-    sensor_scheduler.add_job(update_mem, 'interval', seconds=1)
-    sensor_scheduler.start()
-    io_scheduler = BlockingScheduler()
-    io_scheduler.add_job(main, 'interval', seconds=60)
-    io_scheduler.start()
