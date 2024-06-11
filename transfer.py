@@ -90,3 +90,4 @@ if __name__ == "__main__":
     transfer = DataTransfer()
     scheduler = BlockingScheduler()
     scheduler.add_job(transfer.send_data, "interval", seconds=30)
+    scheduler.start()
