@@ -16,11 +16,12 @@ import pandas as pd
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from sensor import update_mem, main
-from transmit import Transmit
+from sensor import SensorInterface
+from transfer import DataTransfer
 
 app = FastAPI()
-t = Transmit()
+data_transfer = DataTransfer()
+sensor_interface = SensorInterface()
 
 app.add_middleware(
     CORSMiddleware,
@@ -38,6 +39,14 @@ templates = Jinja2Templates(directory="templates")
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
+    """主页rount
+
+    Args:
+        request (Request): 响应请求
+
+    Returns:
+        _type_: 网页
+    """
 
     context = {"request": request}
     return templates.TemplateResponse("index.html", context)
@@ -45,14 +54,28 @@ async def index(request: Request):
 
 @app.get("/status")
 async def api():
-    response = (
-        pd.read_csv(f"{pwd}/data/latest_mean.csv").tail(1).to_dict(orient="records")[0]
-    )
+    """返回实时信息
+
+    Returns:
+        _type_: _description_
+    """
+    response = pd.read_csv(f"{pwd}/data/latest_mean.csv").tail(1).to_dict(orient="records")[0]
     return response
 
 
 @app.get("/api/download")
 async def download(value="mean", year=0, month=0, day=0):
+    """下载数据
+
+    Args:
+        value (str, optional): _description_. Defaults to "mean".
+        year (int, optional): _description_. Defaults to 0.
+        month (int, optional): _description_. Defaults to 0.
+        day (int, optional): _description_. Defaults to 0.
+
+    Returns:
+        _type_: File
+    """
     if year == 0 or month == 0 or day == 0:
         try:
             return FileResponse(f"{pwd}/data/latest_{value}.csv")
@@ -66,7 +89,13 @@ async def download(value="mean", year=0, month=0, day=0):
             return "format illeged\n" + str(object=e)
 
 
-class types(enum.Enum):
+class Types(enum.Enum):
+    """返回类型枚举
+
+    Args:
+        enum (_type_): 图表类型
+    """
+
     temperature = "temperature"
     humidity = "humidity"
     wind_speed = "wind_speed"
@@ -81,14 +110,21 @@ class types(enum.Enum):
 
 
 @app.get("/api/charts")
-async def get_charts(type: types):
+async def get_charts(type: Types):
+    """表格API
+
+    Args:
+        type (types): 表格类型
+
+    Returns:
+        _type_: Json
+    """
     df = pd.read_csv(f"{pwd}/data/latest_mean.csv")
     # Assuming time is in Unix timestamp format
-    df["time"] = pd.to_datetime(df["time"], unit="s", origin="1970-01-01 08:00:00")
-    df["time"] = df["time"].astype(str)  # 将Timestamp类型转换为字符串
+    df["time"] = pd.to_datetime(df["time"], unit="s", origin="1970-01-01 08:00:00").astype(str)
     response = {}
     response["time"] = df["time"].to_list()
-    if type.value == "wind_scale" or type.value == "wind_direction":
+    if type.value in ["wind_scale", "wind_direction"]:
         response[type.name] = df[type.name].round(0).to_list()
     else:
         response[type.name] = df[type.name].to_list()
@@ -97,6 +133,11 @@ async def get_charts(type: types):
 
 @app.get("/update")
 async def update():
+    """更新服务端
+
+    Returns:
+        _type_: Json
+    """
     try:
         os.system(f"bash {pwd}/update.sh")
         return "finish"
@@ -104,16 +145,11 @@ async def update():
         return str(e)
 
 
-def active_transfer():
-    t.transform_data()
-    t.send_data()
-
-
 if __name__ == "__main__":
     sensor_scheduler = BackgroundScheduler()
-    sensor_scheduler.add_job(update_mem, "interval", seconds=1)
-    sensor_scheduler.add_job(active_transfer, "interval", seconds=30)
-    sensor_scheduler.add_job(main, "interval", seconds=60)
+    sensor_scheduler.add_job(sensor_interface.update_mem, "interval", seconds=1)
+    sensor_scheduler.add_job(data_transfer.send_data, "interval", seconds=30)
+    sensor_scheduler.add_job(sensor_interface.local_storage, "interval", seconds=60)
     sensor_scheduler.start()
 
     import uvicorn

@@ -12,7 +12,7 @@ import requests
 import pandas as pd
 
 
-class Transmit:
+class DataTransfer:
     """传输数据"""
 
     def __init__(self) -> None:
@@ -64,11 +64,11 @@ class Transmit:
         Raises:
             e: ERROR
         """
+        self.transform_data()
         # 发送结果
         for i in range(3):
             try:
                 post = requests.post("http://39.105.29.158:8088/api/api/sync", data=self.transmit_data, timeout=5)
-                print(post.status_code)
                 match post.status_code:
                     case 200 | 201:
                         break
