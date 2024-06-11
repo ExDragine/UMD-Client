@@ -33,23 +33,23 @@ class DataTransfer:
         for name, obj in checklist.items():
             if obj == "" or not isinstance(obj, str):
                 raise TypeError(f"{name} incorrect, please input your {name} or check again.")
-        try:
-            _, ext = os.path.splitext(self.sensor_data)
-            if ext == ".csv":
-                self.data = pd.read_csv(self.sensor_data).tail(1).to_dict(orient="records")[0]
-        except FileExistsError as e:
-            raise e
 
     def transform_data(self):
         """发送数据"""
-
+        data = None
+        try:
+            _, ext = os.path.splitext(self.sensor_data)
+            if ext == ".csv":
+                data = pd.read_csv(self.sensor_data).tail(1).to_dict(orient="records")[0]
+        except FileExistsError as e:
+            print(str(e))
         # 创建字典
-        if isinstance(self.data, dict):
+        if isinstance(data, dict):
             p = {
                 "id": str(uuid.uuid5(namespace=uuid.NAMESPACE_DNS, name=self.station_name)),  # 气象站的标识符
                 "timestamp": int(time.time()),  # 确保 timestamp 是整数
                 "key": self.key,
-                "data": self.data,
+                "data": data,
             }
             # 添加三个空的占位符
             p["data"]["hold1"] = 0.0
@@ -68,7 +68,7 @@ class DataTransfer:
         # 发送结果
         for i in range(3):
             try:
-                post = requests.post("http://39.105.29.158:8088/api/api/sync", data=self.transmit_data, timeout=5)
+                post = requests.post("http://39.105.29.158:8088/api/api/sync", data=self.transmit_data, timeout=10)
                 match post.status_code:
                     case 200 | 201:
                         break
