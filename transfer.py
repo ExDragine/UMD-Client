@@ -11,6 +11,8 @@ import uuid
 import requests
 import pandas as pd
 
+from apscheduler.schedulers.blocking import BlockingScheduler
+
 
 class DataTransfer:
     """传输数据"""
@@ -82,3 +84,9 @@ class DataTransfer:
                     pass
                 else:
                     raise e
+
+
+if __name__ == "__main__":
+    transfer = DataTransfer()
+    scheduler = BlockingScheduler()
+    scheduler.add_job(transfer.send_data, "interval", seconds=30)

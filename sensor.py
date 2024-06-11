@@ -10,6 +10,9 @@ import os
 import datetime
 import serial
 
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.blocking import BlockingScheduler
+
 
 class SensorInterface:
     def __init__(self) -> None:
@@ -35,7 +38,9 @@ class SensorInterface:
         }
         # 初始化端口与临时存储变量
 
-        self.port = serial.Serial("/dev/ttyS0", 4800, parity=serial.PARITY_NONE, bytesize=serial.EIGHTBITS, stopbits=serial.STOPBITS_ONE, timeout=0.1)
+        self.port = serial.Serial(
+            "/dev/ttyS0", 4800, parity=serial.PARITY_NONE, bytesize=serial.EIGHTBITS, stopbits=serial.STOPBITS_ONE, timeout=0.1
+        )
         self.mem_data = deque(maxlen=60)  # 定义一个长度为60的双向列表, 临时存储每分钟的数据
 
     # 定义轮询方法
@@ -52,7 +57,7 @@ class SensorInterface:
         time.sleep(0.01)
         response = self.port.read(7)
         if len(response) == 7:
-            data = int.from_bytes(response[3:5], byteorder='big')
+            data = int.from_bytes(response[3:5], byteorder="big")
             match func:
                 case "noise" | "rain":
                     return float(data / 10)
@@ -74,8 +79,8 @@ class SensorInterface:
         time.sleep(0.01)
         response = self.port.read(9)
         if len(response) == 9:
-            h = int.from_bytes(response[3:5], byteorder='big') / 10
-            t = int.from_bytes(response[5:7], byteorder='big') / 10
+            h = int.from_bytes(response[3:5], byteorder="big") / 10
+            t = int.from_bytes(response[5:7], byteorder="big") / 10
             return t, h
         else:
             return 0.0, 0.0
@@ -114,17 +119,17 @@ class SensorInterface:
         os.makedirs(f"{self.pwd}/{year}/{month}", exist_ok=True)
 
         if not os.path.exists(everyday):
-            with open(everyday, "w", encoding='utf-8') as f:
+            with open(everyday, "w", encoding="utf-8") as f:
                 f.write(",".join(self.names) + "\n")
         if not os.path.exists(latest_mean):
-            with open(latest_mean, "w", encoding='utf-8') as f:
+            with open(latest_mean, "w", encoding="utf-8") as f:
                 f.write(",".join(self.names) + "\n")
 
-        with open(everyday, "a", encoding='utf-8') as f:
+        with open(everyday, "a", encoding="utf-8") as f:
             for data in list(self.mem_data):
                 f.write(",".join(map(str, data)) + "\n")
 
-        with open(latest_mean, "r+", encoding='utf-8') as f:
+        with open(latest_mean, "r+", encoding="utf-8") as f:
             f.seek(0)
             data = f.readlines()
             titles = [data[0]]
@@ -135,3 +140,13 @@ class SensorInterface:
             f.seek(0)
             f.truncate()
             f.writelines(data)
+
+
+if __name__ == "__main__":
+    sensor_pobe = SensorInterface()
+    bg_scheduler = BackgroundScheduler()
+    bl_scheduler = BlockingScheduler()
+    bg_scheduler.add_job(sensor_pobe.update_mem, "interval", seconds=1)
+    bl_scheduler.add_job(sensor_pobe.local_storage, "interval", seconds=60)
+    bg_scheduler.start()
+    bl_scheduler.start()

@@ -14,14 +14,8 @@ from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
 
-from apscheduler.schedulers.background import BackgroundScheduler
-
-from sensor import SensorInterface
-from transfer import DataTransfer
 
 app = FastAPI()
-data_transfer = DataTransfer()
-sensor_interface = SensorInterface()
 
 app.add_middleware(
     CORSMiddleware,
@@ -146,11 +140,6 @@ async def update():
 
 
 if __name__ == "__main__":
-    sensor_scheduler = BackgroundScheduler()
-    sensor_scheduler.add_job(sensor_interface.update_mem, "interval", seconds=1)
-    sensor_scheduler.add_job(data_transfer.send_data, "interval", seconds=30)
-    sensor_scheduler.add_job(sensor_interface.local_storage, "interval", seconds=60)
-    sensor_scheduler.start()
 
     import uvicorn
 
