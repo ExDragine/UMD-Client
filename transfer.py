@@ -7,7 +7,6 @@
 import os
 import json
 import time
-import uuid
 import requests
 import pandas as pd
 
@@ -18,8 +17,8 @@ class DataTransfer:
     """传输数据"""
 
     def __init__(self) -> None:
-        self.key = "114514"
-        self.station_name = "lihua"
+        self.key = "2wmfz09l8rhe"
+        self.station_name = "9dpu2k5x1zco"
         self.sensor_data = "/home/exdragine/UMD-Client/data/latest_mean.csv"
         self.transmit_data = ""
         self.initial_check()
@@ -48,7 +47,7 @@ class DataTransfer:
         # 创建字典
         if isinstance(data, dict):
             p = {
-                "id": str(uuid.uuid5(namespace=uuid.NAMESPACE_DNS, name=self.station_name)),  # 气象站的标识符
+                "id": self.station_name,  # 气象站的标识符
                 "timestamp": int(time.time()),  # 确保 timestamp 是整数
                 "key": self.key,
                 "data": data,
