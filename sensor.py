@@ -12,12 +12,12 @@ import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.blocking import BlockingScheduler
 
-from .interface import ICM20948  # Gyroscope/Acceleration/Magnetometer
-from .interface import BME280    # Atmospheric Pressure/Temperature and humidity
-from .interface import LTR390    # UV
-from .interface import TSL2591   # LIGHT
-from .interface import SGP40     # Gas
-from .interface import SN3003
+from interface import ICM20948  # Gyroscope/Acceleration/Magnetometer
+from interface import BME280    # Atmospheric Pressure/Temperature and humidity
+from interface import LTR390    # UV
+from interface import TSL2591   # LIGHT
+from interface import SGP40     # Gas
+from interface import SN3003
 
 
 class SensorHub:

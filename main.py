@@ -147,10 +147,10 @@ async def photo():
         File,str: _description_
     """
     try:
-        os.mkdir("photo") if not os.path.exists("photo") else None
-        os.system("libcamera-still -o ./photo/test.jpg")
-        if os.path.exists("./photo/test.jpg"):
-            return FileResponse("./photo/test.jpg")
+        os.mkdir("data") if not os.path.exists("data") else None
+        os.system("libcamera-still -o ./data/test.jpg")
+        if os.path.exists("./data/test.jpg"):
+            return FileResponse("./data/test.jpg")
         else:
             return "Capture Failed"
     except Exception as e:
