@@ -139,6 +139,24 @@ async def update():
         return str(e)
 
 
+@app.get("/photo")
+async def photo():
+    """拍照
+
+    Returns:
+        File,str: _description_
+    """
+    try:
+        os.mkdir("photo") if not os.path.exists("photo") else None
+        os.system("libcamera-still -o ./photo/test.jpg")
+        if os.path.exists("./photo/test.jpg"):
+            return FileResponse("./photo/test.jpg")
+        else:
+            return "Capture Failed"
+    except Exception as e:
+        return str(e)
+
+
 if __name__ == "__main__":
 
     import uvicorn
