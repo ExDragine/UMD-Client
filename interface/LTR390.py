@@ -1,5 +1,4 @@
 import time
-import math
 import smbus
 
 ADDR = 0x53
@@ -48,9 +47,9 @@ class LTR390:
         if self.ID != 0xB2:
             print("read ID error!,Check the hardware...")
             return
-        self.Write_Byte(LTR390_MAIN_CTRL, 0x0A)  #  UVS in Active Mode
-        self.Write_Byte(LTR390_MEAS_RATE, RESOLUTION_20BIT_TIME400MS | RATE_2000MS)  #  Resolution=18bits, Meas Rate = 100ms
-        self.Write_Byte(LTR390_GAIN, GAIN_3)  #  Gain Range=3.
+        self.Write_Byte(LTR390_MAIN_CTRL, 0x0A)  # UVS in Active Mode
+        self.Write_Byte(LTR390_MEAS_RATE, RESOLUTION_20BIT_TIME400MS | RATE_2000MS)  # Resolution=18bits, Meas Rate = 100ms
+        self.Write_Byte(LTR390_GAIN, GAIN_3)  # Gain Range=3.
         # self.Write_Byte(LTR390_INT_CFG, 0x34) # UVS_INT_EN=1, Command=0x34
         # self.Write_Byte(LTR390_GAIN, GAIN_3) #  Resolution=18bits, Meas Rate = 100ms
 

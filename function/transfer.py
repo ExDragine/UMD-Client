@@ -9,8 +9,14 @@ import json
 import time
 import requests
 import pandas as pd
+import logging
 
-from apscheduler.schedulers.blocking import BlockingScheduler
+from rich.logging import RichHandler
+
+
+FORMAT = "%(asctime)s - [%(name)s:%(funcName)s] - %(message)s"
+logging.basicConfig(level=logging.DEBUG, format=FORMAT, datefmt="[%X]", handlers=[RichHandler()])
+logger = logging.getLogger("sensor")
 
 
 class DataTransfer:
@@ -72,21 +78,23 @@ class DataTransfer:
                 post = requests.post("http://39.105.29.158:8088/api/api/sync", data=self.transmit_data, timeout=10)
                 match post.status_code:
                     case 200 | 201:
+                        logger.info("数据传输成功")
                         break
                     case 202:
                         time.sleep(5)
                         break
                     case _:
+                        logger.warning("貌似出了点问题")
                         pass
             except requests.exceptions.ConnectionError as e:
                 if i < 2:
                     pass
                 else:
-                    raise e
+                    logger.error(e)
 
 
-if __name__ == "__main__":
-    transfer = DataTransfer()
-    scheduler = BlockingScheduler()
-    scheduler.add_job(transfer.send_data, "interval", seconds=30)
-    scheduler.start()
+# if __name__ == "__main__":
+#     transfer = DataTransfer()
+#     scheduler = BlockingScheduler()
+#     scheduler.add_job(transfer.send_data, "interval", seconds=30)
+#     scheduler.start()

@@ -140,19 +140,25 @@ async def update():
 
 
 @app.get("/photo")
-async def photo():
+async def photo(test=False):
     """拍照
 
     Returns:
         File,str: _description_
     """
     try:
-        os.mkdir("data") if not os.path.exists("data") else None
-        os.system("libcamera-still -o ./data/test.jpg")
-        if os.path.exists("./data/test.jpg"):
-            return FileResponse("./data/test.jpg")
+        if test:
+            os.makedirs("./data/photo", exist_ok=True)
+            os.system("libcamera-still -o ./data/photo/test.jpg")
+        if not os.path.exists("./data/photo"):
+            return "No photo right now."
+        file_list = os.listdir("./data/photo")
+        file_list.sort(key=lambda x: os.path.getmtime(os.path.join("./data/photo", x)))
+        latest_file = os.path.join("./data/photo", file_list[-1])
+        if os.path.exists(latest_file):
+            return FileResponse(latest_file)
         else:
-            return "Capture Failed"
+            return "Something wrong."
     except Exception as e:
         return str(e)
 

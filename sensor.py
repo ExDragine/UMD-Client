@@ -8,31 +8,42 @@ from collections import deque
 import time
 import os
 import datetime
+import logging
 
+from rich.logging import RichHandler
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.blocking import BlockingScheduler
 
-from interface import ICM20948  # Gyroscope/Acceleration/Magnetometer
-from interface import BME280    # Atmospheric Pressure/Temperature and humidity
-from interface import LTR390    # UV
-from interface import TSL2591   # LIGHT
-from interface import SGP40     # Gas
-from interface import SN3003
+from function.transfer import DataTransfer
+from interface.SN3003 import SN3003FSXCSN01
+
+
+FORMAT = "%(asctime)s - [%(name)s:%(funcName)s] - %(levelname)s - %(message)s"
+logging.basicConfig(level=logging.INFO, format=FORMAT, datefmt="[%X]", handlers=[RichHandler()])
+logger = logging.getLogger("sensor")
 
 
 class SensorHub:
     def __init__(self) -> None:
         self.pwd = "/home/exdragine/UMD-Client/data"
         self.names = ["time", "temperature", "humidity", "wind_speed", "wind_angle", "noise", "pm2dot5", "pm10", "pressure", "rain"]
-        self.new_names = ["UVS","Lux","Gas"]
+        self.new_names = ["UVS", "Lux", "Gas"]
         self.funcs = ["wind_speed", "wind_angle", "noise", "pm2dot5", "pm10", "pressure", "rain"]
         self.mem_data = deque(maxlen=60)  # 定义一个长度为60的双向列表, 临时存储每分钟的数据
-        self.icm20948 = ICM20948.ICM20948()
-        self.bme280 = BME280.BME280()
-        self.ltr390 = LTR390.LTR390()
-        self.tsl2591 = TSL2591.TSL2591()
-        self.sgp40 = SGP40.SGP40()
-        self.sn3003 = SN3003.SN3003FSXCSN01()
+        self.sn3003 = SN3003FSXCSN01()
+
+    def take_photo(self):
+        try:
+            os.makedirs("./data/photo",exist_ok=True)
+            file_name = datetime.datetime.now().strftime("%H-%M-%S")
+            os.system(f"libcamera-still -o ./data/photo/{file_name}.jpg")
+            if len(os.listdir("./data/photo")) > 288:
+                file_list = os.listdir("./data/photo")
+                file_list.sort(key=lambda x: os.path.getmtime(os.path.join("./data/photo", x)))
+                os.remove(os.path.join("./data/photo",file_list[0]))
+            logger.info(f"{file_name}.jpg 已捕获")
+        except Exception as e:
+            logger.error(str(e))
 
     def update_mem(self):
         """使用查询返回的值更新mem_data"""
@@ -89,13 +100,17 @@ class SensorHub:
             f.seek(0)
             f.truncate()
             f.writelines(data)
+        logger.info("Data updated.")
 
 
 if __name__ == "__main__":
     sensor_pobe = SensorHub()
-    bg_scheduler = BackgroundScheduler()
-    bl_scheduler = BlockingScheduler()
-    bg_scheduler.add_job(sensor_pobe.update_mem, "interval", seconds=1)
-    bl_scheduler.add_job(sensor_pobe.local_storage, "interval", seconds=60)
-    bg_scheduler.start()
-    bl_scheduler.start()
+    transfer = DataTransfer()
+
+    background_scheduler = BackgroundScheduler()
+    background_scheduler.add_job(sensor_pobe.update_mem, "interval", seconds=1)
+    background_scheduler.add_job(transfer.send_data, "interval", seconds=60)
+    background_scheduler.start()
+    block_scheduler = BlockingScheduler()
+    block_scheduler.add_job(sensor_pobe.local_storage, "interval", seconds=30)
+    block_scheduler.start()

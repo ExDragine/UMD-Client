@@ -1,6 +1,7 @@
 import serial
 import time
 
+
 class SN3003FSXCSN01:
     def __init__(self) -> None:
         self.code = {
@@ -67,4 +68,3 @@ class SN3003FSXCSN01:
             return t, h
         else:
             return 0.0, 0.0
-
