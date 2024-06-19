@@ -163,11 +163,11 @@ async def photo(test=False):
 @app.get("/remote")
 async def remote_command():
     try:
-        os.system("libcamera-still -e jpg  -rot 0 -o test.jpg")
+        os.system("libcamera-still -e jpg -rot 0 -o ./test.jpg")
     except:
         return "Run failed"
-    if os.path.exists("test.jpg"):
-        return FileResponse("test.jpg")
+    if os.path.exists("./test.jpg"):
+        return FileResponse("./test.jpg")
     else:
         return "炸了"
 
