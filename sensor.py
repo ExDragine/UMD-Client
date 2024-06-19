@@ -36,7 +36,9 @@ class SensorHub:
         try:
             os.makedirs("./data/photo",exist_ok=True)
             file_name = datetime.datetime.now().strftime("%H-%M-%S")
-            os.system(f"libcamera-still -o ./data/photo/{file_name}.jpg")
+            # if night:
+            #     os.system("libcamera-still --nopreview --shutter 6000000 --rotation 180 --ev 0.5 --metering centre -o ./data/photo/{file_name}.jpg")
+            os.system(f"libcamera-still --nopreview --rotation 180 --metering centre -o ./data/photo/{file_name}.jpg")
             if len(os.listdir("./data/photo")) > 288:
                 file_list = os.listdir("./data/photo")
                 file_list.sort(key=lambda x: os.path.getmtime(os.path.join("./data/photo", x)))
