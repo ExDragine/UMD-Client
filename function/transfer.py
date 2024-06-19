@@ -15,7 +15,7 @@ from rich.logging import RichHandler
 
 
 FORMAT = "%(asctime)s - [%(name)s:%(funcName)s] - %(message)s"
-logging.basicConfig(level=logging.DEBUG, format=FORMAT, datefmt="[%X]", handlers=[RichHandler()])
+logging.basicConfig(level=logging.WARNING, format=FORMAT, datefmt="[%X]", handlers=[RichHandler()])
 logger = logging.getLogger("sensor")
 
 

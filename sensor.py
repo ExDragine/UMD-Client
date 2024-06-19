@@ -19,7 +19,7 @@ from interface.SN3003 import SN3003FSXCSN01
 
 
 FORMAT = "%(asctime)s - [%(name)s:%(funcName)s] - %(levelname)s - %(message)s"
-logging.basicConfig(level=logging.INFO, format=FORMAT, datefmt="[%X]", handlers=[RichHandler()])
+logging.basicConfig(level=logging.WARNING, format=FORMAT, datefmt="[%X]", handlers=[RichHandler()])
 logger = logging.getLogger("sensor")
 
 
