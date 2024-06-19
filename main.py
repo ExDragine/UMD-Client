@@ -163,10 +163,10 @@ async def photo(test=False):
 @app.get("/remote")
 async def remote_command():
     try:
-        os.system("libcamera-still -q 100 -t 1000 -e jpg -ex auto -fli 50hz -awb auto -mm matrix -drc high -rot 180 -o test.png")
+        os.system("libcamera-still -q 100 -t 1000 -e jpg -ex auto -fli 50hz -awb auto -mm matrix -drc high -rot 180 -o test.jpg")
     except:
         return "Run failed"
-    return FileResponse("test.png")
+    return FileResponse("test.jpg")
 
 
 if __name__ == "__main__":
