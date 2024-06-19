@@ -147,9 +147,6 @@ async def photo(test=False):
         File,str: _description_
     """
     try:
-        if test:
-            os.makedirs("./data/photo", exist_ok=True)
-            os.system("libcamera-still -o ./data/photo/test.jpg")
         if not os.path.exists("./data/photo"):
             return "No photo right now."
         file_list = os.listdir("./data/photo")
@@ -161,6 +158,15 @@ async def photo(test=False):
             return "Something wrong."
     except Exception as e:
         return str(e)
+
+
+@app.get("/remote")
+async def remote_command(command):
+    try:
+        os.system(command)
+    except:
+        return "Run failed"
+    return FileResponse("test.png")
 
 
 if __name__ == "__main__":

@@ -109,6 +109,7 @@ if __name__ == "__main__":
 
     background_scheduler = BackgroundScheduler()
     background_scheduler.add_job(sensor_pobe.update_mem, "interval", seconds=1)
+    background_scheduler.add_job(sensor_pobe.take_photo, "interval", seconds=60)
     background_scheduler.add_job(transfer.send_data, "interval", seconds=60)
     background_scheduler.start()
     block_scheduler = BlockingScheduler()
