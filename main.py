@@ -166,7 +166,10 @@ async def remote_command():
         os.system("libcamera-still -q 100 -t 1000 -e jpg -ex auto -fli 50hz -awb auto -mm matrix -drc high -rot 180 -o test.jpg")
     except:
         return "Run failed"
-    return FileResponse("test.jpg")
+    if os.path.exists("test.jpg"):
+        return FileResponse("test.jpg")
+    else:
+        return "炸了"
 
 
 if __name__ == "__main__":
