@@ -12,7 +12,6 @@ import logging
 import json
 import requests
 import serial
-import pandas as pd
 
 from dotenv import load_dotenv
 from rich.logging import RichHandler
@@ -20,23 +19,22 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.blocking import BlockingScheduler
 
 
-FORMAT = "%(asctime)s - [%(name)s:%(funcName)s] - %(levelname)s - %(message)s"
-logging.basicConfig(level=logging.INFO, format=FORMAT, datefmt="[%X]", handlers=[RichHandler()])
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - [%(name)s:%(funcName)s] - %(levelname)s - %(message)s", datefmt="[%X]", handlers=[RichHandler()])
 logger = logging.getLogger("job")
 
-record_frequency = 30  # 秒
-upload_frequency = 30
-photos_frequency = 30
-
-photo = True
-upload = True
 
 load_dotenv()
 name = os.getenv("station_name")
 key = os.getenv("station_key")
 server = os.getenv("server")
+record_frequency = int(os.getenv("record_frequency", 30))
+upload_frequency = int(os.getenv("upload_frequency", 30))
+storage_size = int(os.getenv("storage_size", 2880))
 
-path = os.getcwd()
+if os.getenv("data_path"):
+    path = os.getenv("data_path")
+else:
+    path = os.getcwd()+"/data"
 
 
 class SN3003FSXCSN01:
@@ -107,27 +105,12 @@ class SN3003FSXCSN01:
 
 class SensorHub:
     def __init__(self) -> None:
-        self.pwd = f"{path}/data"
+        self.pwd = path
         self.names = ["time", "temperature", "humidity", "wind_speed", "wind_angle", "noise", "pm2dot5", "pm10", "pressure", "rain"]
         self.new_names = ["UVS", "Lux", "Gas"]
         self.funcs = ["wind_speed", "wind_angle", "noise", "pm2dot5", "pm10", "pressure", "rain"]
         self.mem_data = deque(maxlen=record_frequency)  # 定义一个长度为保存频率的双向列表, 临时存储数据
         self.sn3003 = SN3003FSXCSN01()
-
-    def take_photo(self):
-        try:
-            os.makedirs("./data/photo", exist_ok=True)
-            file_name = datetime.datetime.now().strftime("%H-%M-%S")
-            # if night:
-            #     os.system("libcamera-still --nopreview --shutter 6000000 --rotation 180 --ev 0.5 --metering centre -o ./data/photo/{file_name}.jpg")
-            os.system(f"libcamera-still --nopreview --rotation 180 --metering centre -o ./data/photo/{file_name}.jpg")
-            if len(os.listdir("./data/photo")) > 288:
-                file_list = os.listdir("./data/photo")
-                file_list.sort(key=lambda x: os.path.getmtime(os.path.join("./data/photo", x)))
-                os.remove(os.path.join("./data/photo", file_list[0]))
-            logger.info(f"{file_name}.jpg 已捕获")
-        except Exception as e:
-            logger.error(str(e))
 
     def update_mem(self):
         """使用查询返回的值更新mem_data"""
@@ -177,8 +160,8 @@ class SensorHub:
             f.seek(0)
             data = f.readlines()
             titles = [data[0]]
-            if len(data) > 1441:
-                data = titles + data[-1440:] + [",".join(map(str, mean_result)) + "\n"]
+            if len(data) > storage_size + 1:
+                data = titles + data[-storage_size:] + [",".join(map(str, mean_result)) + "\n"]
             else:
                 data = data + [",".join(map(str, mean_result)) + "\n"]
             f.seek(0)
@@ -193,7 +176,6 @@ class DataTransfer:
     def __init__(self) -> None:
         self.key = key
         self.station_name = name
-        self.sensor_data = f"{path}/data/latest_mean.csv"
         self.transmit_data = ""
         self.initial_check()
 
@@ -209,16 +191,10 @@ class DataTransfer:
             if obj == "" or not isinstance(obj, str):
                 raise TypeError(f"{name} incorrect, please input your {name} or check again.")
 
-    def transform_data(self):
+    def transform_data(self, value_name, value):
         """发送数据"""
-        data = None
-        try:
-            _, ext = os.path.splitext(self.sensor_data)
-            if ext == ".csv":
-                data = pd.read_csv(self.sensor_data).tail(1).to_dict(orient="records")[0]
-        except FileExistsError as e:
-            print(str(e))
         # 创建字典
+        data = zip(value_name, value)
         if isinstance(data, dict):
             p = {
                 "id": self.station_name,  # 气象站的标识符
@@ -233,13 +209,13 @@ class DataTransfer:
 
             self.transmit_data = json.dumps(p, ensure_ascii=True, allow_nan=True, indent=4)
 
-    def send_data(self):
+    def send_data(self, value_name, value):
         """Send data to UMD platform
 
         Raises:
             e: ERROR
         """
-        self.transform_data()
+        self.transform_data(value_name, value)
         # 发送结果
         for i in range(3):
             try:
@@ -266,15 +242,16 @@ class DataTransfer:
 
 if __name__ == "__main__":
     sensor_pobe = SensorHub()
+    transfer = DataTransfer()
     block_scheduler = BlockingScheduler()
-    if photo or upload:
-        background_scheduler = BackgroundScheduler()
-        if photo:
-            background_scheduler.add_job(sensor_pobe.take_photo, "interval", seconds=photos_frequency)
-        if upload:
-            transfer = DataTransfer()
-            background_scheduler.add_job(transfer.send_data, "interval", seconds=upload_frequency)
-        background_scheduler.start()
+    background_scheduler = BackgroundScheduler()
+    background_scheduler.add_job(
+        transfer.send_data, "interval", seconds=upload_frequency, kwargs={'value_name': sensor_pobe.names, 'value': sensor_pobe.mem_data[-1]}
+    )
+    background_scheduler.start()
     block_scheduler.start()
 
+# sensor_pobe = SensorHub()
+# transfer = DataTransfer()
+# transfer.send_data(sensor_pobe.names,sensor_pobe.mem_data[-1])
 # nohup python3 main.py > logs/main.log 2>&1 &
