@@ -15,11 +15,12 @@ import serial
 
 from dotenv import load_dotenv
 from rich.logging import RichHandler
-from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.blocking import BlockingScheduler
 
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - [%(name)s:%(funcName)s] - %(levelname)s - %(message)s", datefmt="[%X]", handlers=[RichHandler()])
+logging.basicConfig(
+    level=logging.WARNING, format="%(asctime)s - [%(name)s:%(funcName)s] - %(levelname)s - %(message)s", datefmt="[%X]", handlers=[RichHandler()]
+)
 logger = logging.getLogger("job")
 
 
@@ -28,13 +29,12 @@ name = os.getenv("station_name")
 key = os.getenv("station_key")
 server = os.getenv("server")
 record_frequency = int(os.getenv("record_frequency", 30))
-upload_frequency = int(os.getenv("upload_frequency", 30))
 storage_size = int(os.getenv("storage_size", 2880))
 
 if os.getenv("data_path"):
     path = os.getenv("data_path")
 else:
-    path = os.getcwd()+"/data"
+    path = os.getcwd() + "/data"
 
 
 class SN3003FSXCSN01:
@@ -103,6 +103,72 @@ class SN3003FSXCSN01:
             return 0.0, 0.0
 
 
+class DataTransfer:
+    """传输数据"""
+
+    def __init__(self, key, name) -> None:
+        self.station_key = key
+        self.station_name = name
+        self.transmit_data = ""
+        self.initial_check()
+
+    def initial_check(self):
+        """检查输入参数的合规性
+
+        Raises:
+            TypeError: 输入有毛病
+            e: 文件不存在
+        """
+        checklist = {"key": self.station_key, "station_name": self.station_name}
+        for name, obj in checklist.items():
+            if obj == "" or not isinstance(obj, str):
+                raise ValueError(f"{name} incorrect, please input your {name} or check again.")
+
+    def transform_data(self, value_name, value):
+        """发送数据"""
+        # 创建字典
+        data = zip(value_name, value)
+        if isinstance(data, dict):
+            p = {
+                "id": self.station_name,  # 气象站的标识符
+                "timestamp": int(time.time()),  # 确保 timestamp 是整数
+                "key": self.station_key,
+                "data": data,
+            }
+            # 添加三个空的占位符
+            p["data"]["hold1"] = 0.0
+            p["data"]["hold2"] = 0.0
+            p["data"]["hold3"] = 0.0
+
+            self.transmit_data = json.dumps(p, ensure_ascii=True, allow_nan=True, indent=4)
+
+    async def send_data(self, server, value_name, value):
+        """Send data to UMD platform
+
+        Raises:
+            e: ERROR
+        """
+        self.transform_data(value_name, value)
+        # 发送结果
+        for i in range(3):
+            try:
+                if server:
+                    post = requests.post(server, data=self.transmit_data, timeout=10)
+                    match post.status_code:
+                        case 200 | 201:
+                            break
+                        case 202:
+                            time.sleep(5)
+                            break
+                        case _:
+                            print(post.status_code)
+                            pass
+            except requests.exceptions.ConnectionError as e:
+                if i < 2:
+                    pass
+                print(str(e))
+
+
 class SensorHub:
     def __init__(self) -> None:
         self.pwd = path
@@ -127,7 +193,7 @@ class SensorHub:
             time.sleep(0.01)
         self.mem_data.append(sensor_data)
 
-    def local_storage(self):
+    async def local_storage(self):
         """处理数据,存储数据"""
         now = datetime.datetime.now()
         year, month, day = str(now.year), str(now.month), str(now.day)
@@ -168,87 +234,14 @@ class SensorHub:
             f.truncate()
             f.writelines(data)
         logger.info("Data updated.")
-
-
-class DataTransfer:
-    """传输数据"""
-
-    def __init__(self) -> None:
-        self.key = key
-        self.station_name = name
-        self.transmit_data = ""
-        self.initial_check()
-
-    def initial_check(self):
-        """检查输入参数的合规性
-
-        Raises:
-            TypeError: 输入有毛病
-            e: 文件不存在
-        """
-        checklist = {"key": self.key, "station_name": self.station_name}
-        for name, obj in checklist.items():
-            if obj == "" or not isinstance(obj, str):
-                raise TypeError(f"{name} incorrect, please input your {name} or check again.")
-
-    def transform_data(self, value_name, value):
-        """发送数据"""
-        # 创建字典
-        data = zip(value_name, value)
-        if isinstance(data, dict):
-            p = {
-                "id": self.station_name,  # 气象站的标识符
-                "timestamp": int(time.time()),  # 确保 timestamp 是整数
-                "key": self.key,
-                "data": data,
-            }
-            # 添加三个空的占位符
-            p["data"]["hold1"] = 0.0
-            p["data"]["hold2"] = 0.0
-            p["data"]["hold3"] = 0.0
-
-            self.transmit_data = json.dumps(p, ensure_ascii=True, allow_nan=True, indent=4)
-
-    def send_data(self, value_name, value):
-        """Send data to UMD platform
-
-        Raises:
-            e: ERROR
-        """
-        self.transform_data(value_name, value)
-        # 发送结果
-        for i in range(3):
-            try:
-                if server:
-                    post = requests.post(server, data=self.transmit_data, timeout=10)
-                    match post.status_code:
-                        case 200 | 201:
-                            logger.info("数据传输成功")
-                            break
-                        case 202:
-                            time.sleep(5)
-                            break
-                        case _:
-                            logger.warning("貌似出了点问题")
-                            pass
-                else:
-                    logging.error("No server.")
-            except requests.exceptions.ConnectionError as e:
-                if i < 2:
-                    pass
-                else:
-                    logger.error(e)
+        transfer = DataTransfer(key, name)
+        await transfer.send_data(server, self.names, latest_mean)
 
 
 if __name__ == "__main__":
     sensor_pobe = SensorHub()
-    transfer = DataTransfer()
     block_scheduler = BlockingScheduler()
-    background_scheduler = BackgroundScheduler()
-    background_scheduler.add_job(
-        transfer.send_data, "interval", seconds=upload_frequency, kwargs={'value_name': sensor_pobe.names, 'value': sensor_pobe.mem_data[-1]}
-    )
-    background_scheduler.start()
+    block_scheduler.add_job(sensor_pobe.local_storage, "interval", seconds=record_frequency)
     block_scheduler.start()
 
 # sensor_pobe = SensorHub()
