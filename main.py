@@ -15,6 +15,7 @@ import serial
 
 from dotenv import load_dotenv
 from rich.logging import RichHandler
+from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.blocking import BlockingScheduler
 
 
@@ -127,33 +128,33 @@ class DataTransfer:
     def transform_data(self, value_name, value):
         """发送数据"""
         # 创建字典
-        data = zip(value_name, value)
-        if isinstance(data, dict):
-            p = {
-                "id": self.station_name,  # 气象站的标识符
-                "timestamp": int(time.time()),  # 确保 timestamp 是整数
-                "key": self.station_key,
-                "data": data,
-            }
-            # 添加三个空的占位符
-            p["data"]["hold1"] = 0.0
-            p["data"]["hold2"] = 0.0
-            p["data"]["hold3"] = 0.0
+        data = dict(zip(value_name, value))
+        p = {
+            "id": self.station_name,  # 气象站的标识符
+            "timestamp": int(time.time()),  # 确保 timestamp 是整数
+            "key": self.station_key,
+            "data": data,
+        }
+        # 添加三个空的占位符
+        p["data"]["hold1"] = 0.0
+        p["data"]["hold2"] = 0.0
+        p["data"]["hold3"] = 0.0
 
-            self.transmit_data = json.dumps(p, ensure_ascii=True, allow_nan=True, indent=4)
+        transmit_data = json.dumps(p, ensure_ascii=True, allow_nan=True, indent=4)
+        return transmit_data
 
-    async def send_data(self, server, value_name, value):
+    def send_data(self, server, value_name, value):
         """Send data to UMD platform
 
         Raises:
             e: ERROR
         """
-        self.transform_data(value_name, value)
+        data = self.transform_data(value_name, value)
         # 发送结果
         for i in range(3):
             try:
                 if server:
-                    post = requests.post(server, data=self.transmit_data, timeout=10)
+                    post = requests.post(server, data, timeout=10)
                     match post.status_code:
                         case 200 | 201:
                             break
@@ -193,7 +194,7 @@ class SensorHub:
             time.sleep(0.01)
         self.mem_data.append(sensor_data)
 
-    async def local_storage(self):
+    def local_storage(self):
         """处理数据,存储数据"""
         now = datetime.datetime.now()
         year, month, day = str(now.year), str(now.month), str(now.day)
@@ -235,16 +236,14 @@ class SensorHub:
             f.writelines(data)
         logger.info("Data updated.")
         transfer = DataTransfer(key, name)
-        await transfer.send_data(server, self.names, latest_mean)
+        transfer.send_data(server, self.names, mean_result)
 
 
 if __name__ == "__main__":
     sensor_pobe = SensorHub()
+    background_scheduler = BackgroundScheduler()
+    background_scheduler.add_job(sensor_pobe.update_mem,"interval",seconds=1)
     block_scheduler = BlockingScheduler()
     block_scheduler.add_job(sensor_pobe.local_storage, "interval", seconds=record_frequency)
+    background_scheduler.start()
     block_scheduler.start()
-
-# sensor_pobe = SensorHub()
-# transfer = DataTransfer()
-# transfer.send_data(sensor_pobe.names,sensor_pobe.mem_data[-1])
-# nohup python3 main.py > logs/main.log 2>&1 &
