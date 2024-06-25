@@ -8,21 +8,19 @@ from collections import deque
 import time
 import os
 import datetime
-import logging
 import json
 import requests
 import serial
 
 from dotenv import load_dotenv
-from rich.logging import RichHandler
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.blocking import BlockingScheduler
 
 
-logging.basicConfig(
-    level=logging.WARNING, format="%(asctime)s - [%(name)s:%(funcName)s] - %(levelname)s - %(message)s", datefmt="[%X]", handlers=[RichHandler()]
-)
-logger = logging.getLogger("job")
+# logging.basicConfig(
+#     level=logging.WARNING, format="%(asctime)s - [%(name)s:%(funcName)s] - %(levelname)s - %(message)s", datefmt="[%X]", handlers=[RichHandler()]
+# )
+# logger = logging.getLogger("job")
 
 
 load_dotenv()
@@ -197,7 +195,8 @@ class SensorHub:
     def local_storage(self):
         """处理数据,存储数据"""
         now = datetime.datetime.now()
-        year, month, day = str(now.year), str(now.month), str(now.day)
+        # year, month, day = str(now.year), str(now.month), str(now.day)
+        year, month = str(now.year), str(now.month)
         timestamp = int(time.time())  # 秒级timestamp
         data_transposition = list(zip(*list(self.mem_data)))  # 将mem_data转置,每一行对应一个变量
         del data_transposition[0]  # 删除timestamp
@@ -207,21 +206,21 @@ class SensorHub:
         mean_result.insert(0, timestamp)
 
         # everyday存储原始数据,latest_mean存储平均后的数据
-        everyday = f"{self.pwd}/{year}/{month}/{day}.csv"
+        # everyday = f"{self.pwd}/{year}/{month}/{day}.csv"
         latest_mean = f"{self.pwd}/latest_mean.csv"
 
-        os.makedirs(f"{self.pwd}/{year}/{month}", exist_ok=True)
+        # os.makedirs(f"{self.pwd}/{year}/{month}", exist_ok=True)
 
-        if not os.path.exists(everyday):
-            with open(everyday, "w", encoding="utf-8") as f:
-                f.write(",".join(self.names) + "\n")
+        # if not os.path.exists(everyday):
+        #     with open(everyday, "w", encoding="utf-8") as f:
+        #         f.write(",".join(self.names) + "\n")
         if not os.path.exists(latest_mean):
             with open(latest_mean, "w", encoding="utf-8") as f:
                 f.write(",".join(self.names) + "\n")
 
-        with open(everyday, "a", encoding="utf-8") as f:
-            for data in list(self.mem_data):
-                f.write(",".join(map(str, data)) + "\n")
+        # with open(everyday, "a", encoding="utf-8") as f:
+        #     for data in list(self.mem_data):
+        #         f.write(",".join(map(str, data)) + "\n")
 
         with open(latest_mean, "r+", encoding="utf-8") as f:
             f.seek(0)
@@ -234,7 +233,6 @@ class SensorHub:
             f.seek(0)
             f.truncate()
             f.writelines(data)
-        logger.info("Data updated.")
         transfer = DataTransfer(key, name)
         transfer.send_data(server, self.names, mean_result)
 
@@ -242,7 +240,7 @@ class SensorHub:
 if __name__ == "__main__":
     sensor_pobe = SensorHub()
     background_scheduler = BackgroundScheduler()
-    background_scheduler.add_job(sensor_pobe.update_mem,"interval",seconds=1)
+    background_scheduler.add_job(sensor_pobe.update_mem, "interval", seconds=1)
     block_scheduler = BlockingScheduler()
     block_scheduler.add_job(sensor_pobe.local_storage, "interval", seconds=record_frequency)
     background_scheduler.start()
