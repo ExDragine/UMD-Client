@@ -1,0 +1,12 @@
+requests
+apscheduler
+astral
+pillow
+pandas
+fastapi
+scikit-learn
+scikit-image
+smbus
+pyserial
+gpiozero
+spidev
