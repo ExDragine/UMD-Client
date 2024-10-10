@@ -1,5 +1,6 @@
 import time
 
+
 def umd(data: dict):
     n = ["time", "temperature", "humidity", "wind_speed", "wind_angle", "noise", "pm2dot5", "pm10", "pressure", "rain"]
     p = {}
@@ -12,4 +13,3 @@ def umd(data: dict):
                 p[n[i]] = int(time.time())
 
     return p
-
