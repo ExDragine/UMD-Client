@@ -1,23 +1,12 @@
+import logging
 import os
-import asyncio
+import threading
+import time
 import tomllib
 
-# from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.schedulers.blocking import BlockingScheduler
-
 from modules.sn3003 import SN3003FSXCSN01
-
-# from modules.sensor_hat import Sensor_HAT
-# from modules.epd2in13b_V4 import display
-
-# from utils.adapter import umd
 from utils.init import init
 from utils.send import send_to
-
-# from utils.sql import Database
-
-# Log
-import logging
 
 logging.basicConfig(
     level=logging.INFO,
@@ -33,7 +22,6 @@ if not os.path.exists(".env.toml"):
 with open(".env.toml", "rb") as f:
     env = tomllib.load(f)
 
-
 name = env.get("station_name")
 key = env.get("station_key")
 server = env.get("server")
@@ -41,39 +29,32 @@ record_frequency = int(env.get("record_frequency", 30))
 storage_size = int(env.get("storage_size", 86400 / record_frequency))  # One day
 path = env.get("data_path", f"{os.getcwd()}/data")
 
-
 sn3003 = SN3003FSXCSN01()
-# sensor_hat = Sensor_HAT()
-
-# database_name = "./data/record.db"
-# database = Database(database_name)
-# if not os.path.exists(database_name):
-#     database.init()
 
 
 def main():
-    """
-    A sample Raspberry Pi sensor board based on the Raspberry Pi sensor board, implementing the most basic data acquisition and sending functions.
-    """
-    sn3003.update_mem()
-    asyncio.run(send_to(key=key, name=name, server=server, value_name=sn3003.names, value=list(sn3003.mem_data)))
-    # database.insert(hat_data)
+    try:
+        """
+        A sample Raspberry Pi sensor board based on the Raspberry Pi sensor board, implementing the most basic data acquisition and sending functions.
+        """
+        sn3003.update_mem()
+        send_to(key=key, name=name, server=server, value_name=sn3003.names, value=list(sn3003.mem_data[-1]))
+    except Exception as e:
+        logger.error(f"Error occurred in main: {e}")
 
 
-# def update_display():
-#     """
-#     Optional extension functions, you can form your own extension functions
-#     """
-#     hat_data = sensor_hat.read()
-#     display(hat_data)
+def scheduler():
+    """
+    Schedule the main function to run at fixed intervals.
+    """
+    main()  # Call the main function
+    threading.Timer(record_frequency, scheduler).start()  # Schedule the next execution
 
 
 if __name__ == "__main__":
-    # background_scheduler = BackgroundScheduler()
-    block_scheduler = BlockingScheduler()
-
-    # background_scheduler.add_job(update_display, "interval", seconds=300, jitter=1)
-    block_scheduler.add_job(main, "interval", seconds=record_frequency)
-
-    # background_scheduler.start()
-    block_scheduler.start()
+    try:
+        scheduler()  # Start the scheduler
+        while True:
+            time.sleep(1)  # Keep the main thread alive
+    except KeyboardInterrupt:
+        logger.info("Scheduler stopped by user")

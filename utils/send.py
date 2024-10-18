@@ -1,13 +1,13 @@
 import json
-import time
 import ssl
-import asyncio
-import aiohttp
+import time
+import urllib.error
+import urllib.request
 
 context = ssl._create_unverified_context()
 
 
-async def send_to(key, name, server, value_name, value):
+def send_to(key, name, server, value_name, value):
     """Send data to UMD platform
 
     Raises:
@@ -34,18 +34,10 @@ async def send_to(key, name, server, value_name, value):
     p["data"]["hold3"] = None
 
     transmit_data = json.dumps(p, ensure_ascii=True, allow_nan=True, indent=4).encode("utf-8")
-    with open("./data/send_data.json", "wb") as f:
+    try:
+        response = urllib.request.Request(url=server, data=transmit_data, headers={"Content-Type": "application/json"})
+        response = urllib.request.urlopen(response, timeout=5)
+    except urllib.error.URLError as e:
+        print(f"Request failed: {e.reason}")
+    with open("latest_data.json", "wb") as f:
         f.write(transmit_data)
-
-    async with aiohttp.ClientSession() as session:
-        try:
-            async with session.post(
-                url=server,
-                json=transmit_data,
-                headers={"Content-Type": "application/json"},
-                ssl=False,
-                timeout=aiohttp.ClientTimeout(total=1),
-            ) as response:
-                response.raise_for_status()
-        except (asyncio.TimeoutError, aiohttp.ClientError):
-            pass

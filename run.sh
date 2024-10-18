@@ -1,2 +1,1 @@
-source venv/bin/activate
-python main.py
+python __init__.py
