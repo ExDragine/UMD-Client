@@ -1,12 +1,20 @@
 import datetime
+from importlib import resources
+
 from astral import LocationInfo
-from astral.sun import sun
 from astral.moon import moonrise, moonset, phase
-from PIL import Image, ImageFont, ImageDraw
+from astral.sun import sun
+from PIL import Image, ImageDraw, ImageFont
 
-from modules.epd2in13b_V4 import epd2in13b_V4
+from umd_client.config import LocationConfig
+from umd_client.sensors.types import Reading
 
-icon_font_huge = ImageFont.truetype("./font/FluentSystemIcons-Resizable.ttf", size=96)
+
+def _font_path(name):
+    return str(resources.files("umd_client.assets.font").joinpath(name))
+
+
+icon_font_huge = ImageFont.truetype(_font_path("FluentSystemIcons-Resizable.ttf"), size=96)
 
 
 def draw_moon_phase(drawblack, height, width, moon_phase, moon_rise, moon_set, timestamp, icon_font_huge):
@@ -39,31 +47,42 @@ def draw_moon_phase(drawblack, height, width, moon_phase, moon_rise, moon_set, t
             draw_icon("\uF33A")
 
 
-def display(data):
-    today = datetime.datetime.today()
-    city = LocationInfo("Guangzhou", "China", "Asia/Harbin", 23.109866, 113.2683)
-    s = sun(city.observer, date=datetime.date(today.year, today.month, today.day), tzinfo=city.timezone)
+def render_images(
+    reading: Reading,
+    epd=None,
+    location: LocationConfig | None = None,
+    timestamp: int | None = None,
+):
+    location = LocationConfig() if location is None else location
+    now = datetime.datetime.now() if timestamp is None else datetime.datetime.fromtimestamp(timestamp)
+    today = now.date()
+    city = LocationInfo(location.city, location.country, location.timezone, location.latitude, location.longitude)
+    s = sun(city.observer, date=today, tzinfo=city.timezone)
     sunrise_start = int((s["sunrise"] + datetime.timedelta(minutes=-15)).timestamp())
     sunrise_finish = int((s["sunrise"] + datetime.timedelta(minutes=15)).timestamp())
     sunset_start = int((s["sunset"] + datetime.timedelta(minutes=-15)).timestamp())
     sunset_finish = int((s["sunset"] + datetime.timedelta(minutes=15)).timestamp())
-    moon_phase = phase(datetime.date(today.year, today.month, today.day))
+    moon_phase = phase(today)
     try:
-        moon_rise = moonrise(city.observer, date=datetime.date(today.year, today.month, today.day), tzinfo=city.timezone)
-    except ValueError as e:
+        moon_rise = moonrise(city.observer, date=today, tzinfo=city.timezone)
+    except ValueError:
         moon_rise = None
     try:
-        moon_set = moonset(city.observer, date=datetime.date(today.year, today.month, today.day), tzinfo=city.timezone)
-    except ValueError as e:
+        moon_set = moonset(city.observer, date=today, tzinfo=city.timezone)
+    except ValueError:
         moon_set = None
-    timestamp = int(datetime.datetime.now().timestamp())
+    timestamp = int(now.timestamp())
 
-    epd = epd2in13b_V4.EPD()
-    font = ImageFont.truetype("./font/Minecraft.ttf", 16)
+    if epd is None:
+        from umd_client.display.epd2in13b_v4 import epd2in13b_v4
+
+        epd = epd2in13b_v4.EPD()
+    font = ImageFont.truetype(_font_path("Minecraft.ttf"), 16)
     HBlackimage = Image.new("1", (epd.height, epd.width), color=255)  # 250*122
     RedImage = Image.new("1", (epd.height, epd.width), color=255)  # 250*122
     drawblack = ImageDraw.Draw(HBlackimage)
     drawred = ImageDraw.Draw(RedImage)
+    data = reading.display_values
     try:
         drawblack.text((125, 13), text=f"T: {data[0]}℃", font=font, fill=0)
         drawblack.text((125, 33), text=f"H: {data[1]}%", font=font, fill=0)
@@ -89,20 +108,44 @@ def display(data):
         drawred.line((108, 0, 108, 0), fill=0)
         drawred.line((109, 0, 109, 0), fill=0)
 
-    except:
+    except Exception:
         drawblack.text(
-            (int((epd.height - 64) / 2), int(13)),
+            (int((epd.height - 64) / 2), 13),
             text="\uF322",
-            font=ImageFont.truetype("./font/FluentSystemIcons-Resizable.ttf", size=64),
+            font=ImageFont.truetype(_font_path("FluentSystemIcons-Resizable.ttf"), size=64),
             fill=0,
         )
         text = "SYSTEM FAILED"
         drawblack.text((int((epd.height - len(text.replace(" ", "")) * 12) / 2), 93), text=text, font=font, fill=0)
     HBlackimage = HBlackimage.rotate(180)
     RedImage = RedImage.rotate(180)
+    return HBlackimage, RedImage
+
+
+def display_reading(reading: Reading, location: LocationConfig | None = None) -> None:
+    from umd_client.display.epd2in13b_v4 import epd2in13b_v4
+
+    epd = epd2in13b_v4.EPD()
+    HBlackimage, RedImage = render_images(reading, epd=epd, location=location)
     try:
         epd.init()
         epd.display(epd.getbuffer(HBlackimage), epd.getbuffer(RedImage))
         epd.sleep()
     except KeyboardInterrupt:
         epd.sleep()
+
+
+def display(data):
+    reading = Reading(
+        timestamp=int(datetime.datetime.now().timestamp()),
+        data={
+            "time": int(datetime.datetime.now().timestamp()),
+            "temperature": data[0],
+            "humidity": data[1],
+            "pressure": data[2],
+            "lux": data[3],
+            "uv": data[4],
+            "shake": 0,
+        },
+    )
+    display_reading(reading)

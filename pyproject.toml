@@ -1,0 +1,59 @@
+[project]
+name = "umd-client"
+version = "0.1.0"
+description = "Raspberry Pi weather station client for the UMD Weather Platform."
+readme = "readme.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+]
+
+[project.optional-dependencies]
+sn3003 = [
+    "pyserial>=3.5",
+]
+camera = [
+    "astral>=3.2",
+]
+display = [
+    "astral>=3.2",
+    "gpiozero>=2.0",
+    "pillow>=10.0",
+    "spidev>=3.7",
+]
+dev = [
+    "astral>=3.2",
+    "pillow>=10.0",
+    "pytest>=8.0",
+    "ruff>=0.8.0",
+]
+
+[project.scripts]
+umd-client = "umd_client.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/umd_client"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/umd_client/assets/font" = "umd_client/assets/font"
+"src/umd_client/sensors/sn3003/sn3003fsxcsn01.toml" = "umd_client/sensors/sn3003/sn3003fsxcsn01.toml"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/umd_client/display/epd2in13b_v4/epdconfig.py" = ["F403", "F405", "I001", "UP031", "UP036"]
+"src/umd_client/sensors/sensor_hat/*.py" = ["B007", "F841", "I001", "UP004", "UP009", "UP031"]

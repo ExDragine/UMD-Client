@@ -1,5 +1,6 @@
 import logging
-from modules.epd2in13b_V4 import epdconfig
+
+from umd_client.display.epd2in13b_v4 import epdconfig
 
 # Display resolution
 EPD_WIDTH = 122
